@@ -8,11 +8,38 @@
         fighters: 12,
         bombers: 6,
         asteroids: 30,
-        backgroundDetail: "random",
+        stars: "randomly",
+        spaceDust: "randomly",
+        planets: "randomly",
+        asteroidBelt: "randomly",
         debris: true,
         slowMotion: true,
+        autoBalance: true,
         interaction: true,
-        brightness: 100
+        brightness: 100,
+        showScore: false,
+        scoreOrientation: "bottom",
+        scoreHorizontalOffset: 0,
+        scoreVerticalOffset: 0,
+        resetStats: false,
+        spawnEarthCruiser: true,
+        spawnEarthMissileFrigate: true,
+        spawnEarthFighter: true,
+        spawnEarthBomber: true,
+        spawnGlieseCorvette: true,
+        spawnGlieseDreadnaught: true,
+        spawnGlieseFighter: true,
+        spawnGlieseBomber: true,
+        spawnEridaniGunboat: true,
+        spawnEridaniDestroyer: true,
+        spawnEridaniFighter: true,
+        spawnEridaniBomber: true,
+        showHitboxes: false,
+        showHpBars: false,
+        showShipMovement: false,
+        showShipState: false,
+        showProjectileTargets: false,
+        showFps: false
     };
 
     function value(property, fallback) {
@@ -46,11 +73,49 @@
             if (properties.fighters !== undefined) settings.fighters = numberValue(properties.fighters, defaults.fighters);
             if (properties.bombers !== undefined) settings.bombers = numberValue(properties.bombers, defaults.bombers);
             if (properties.asteroids !== undefined) settings.asteroids = numberValue(properties.asteroids, defaults.asteroids);
-            if (properties.backgrounddetail !== undefined) settings.backgroundDetail = String(value(properties.backgrounddetail, defaults.backgroundDetail));
+            if (properties.stars !== undefined) settings.stars = String(value(properties.stars, defaults.stars));
+            if (properties.spacedust !== undefined) settings.spaceDust = String(value(properties.spacedust, defaults.spaceDust));
+            if (properties.planets !== undefined) settings.planets = String(value(properties.planets, defaults.planets));
+            if (properties.asteroidbelt !== undefined) settings.asteroidBelt = String(value(properties.asteroidbelt, defaults.asteroidBelt));
             if (properties.debris !== undefined) settings.debris = booleanValue(properties.debris, defaults.debris);
             if (properties.slowmotion !== undefined) settings.slowMotion = booleanValue(properties.slowmotion, defaults.slowMotion);
+            if (properties.autobalance !== undefined) settings.autoBalance = booleanValue(properties.autobalance, defaults.autoBalance);
             if (properties.interaction !== undefined) settings.interaction = booleanValue(properties.interaction, defaults.interaction);
             if (properties.brightness !== undefined) settings.brightness = numberValue(properties.brightness, defaults.brightness);
+            if (properties.showscore !== undefined) settings.showScore = booleanValue(properties.showscore, defaults.showScore);
+            if (properties.scoreorientation !== undefined) settings.scoreOrientation = String(value(properties.scoreorientation, defaults.scoreOrientation));
+            if (properties.scorehorizontaloffset !== undefined) settings.scoreHorizontalOffset = numberValue(properties.scorehorizontaloffset, defaults.scoreHorizontalOffset);
+            if (properties.scoreverticaloffset !== undefined) settings.scoreVerticalOffset = numberValue(properties.scoreverticaloffset, defaults.scoreVerticalOffset);
+            if (properties.resetstats !== undefined) {
+                const shouldReset = booleanValue(properties.resetstats, defaults.resetStats);
+                if (shouldReset && !settings.resetStats && window.pixelFleetApp) window.pixelFleetApp.clearStats();
+                settings.resetStats = shouldReset;
+            }
+            const booleanProperties = {
+                spawnearthcruiser: "spawnEarthCruiser",
+                spawnearthmissilefrigate: "spawnEarthMissileFrigate",
+                spawnearthfighter: "spawnEarthFighter",
+                spawnearthbomber: "spawnEarthBomber",
+                spawngliesecorvette: "spawnGlieseCorvette",
+                spawngliesedreadnaught: "spawnGlieseDreadnaught",
+                spawngliesefighter: "spawnGlieseFighter",
+                spawngliesebomber: "spawnGlieseBomber",
+                spawneridanigunboat: "spawnEridaniGunboat",
+                spawneridanidestroyer: "spawnEridaniDestroyer",
+                spawneridanifighter: "spawnEridaniFighter",
+                spawneridanibomber: "spawnEridaniBomber",
+                showhitboxes: "showHitboxes",
+                showhpbars: "showHpBars",
+                showshipmovement: "showShipMovement",
+                showshipstate: "showShipState",
+                showprojectiletargets: "showProjectileTargets",
+                showfps: "showFps"
+            };
+            for (const [propertyName, settingName] of Object.entries(booleanProperties)) {
+                if (properties[propertyName] !== undefined) {
+                    settings[settingName] = booleanValue(properties[propertyName], defaults[settingName]);
+                }
+            }
             if (window.pixelFleetApp) window.pixelFleetApp.applySettings(settings);
         },
         setPaused(paused) {

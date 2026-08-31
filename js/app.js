@@ -13,6 +13,9 @@
             this.simulationAccumulator = 0;
             this.renderAccumulator = 0;
             this.frameCount = 0;
+            this.measuredFps = 0;
+            this.fpsSampleFrames = 0;
+            this.fpsSampleTime = 0;
             this.resizeObserver = new ResizeObserver(() => this.resize());
             this.resizeObserver.observe(document.documentElement);
             canvas.addEventListener("dblclick", (event) => this.handleDoubleClick(event));
@@ -31,8 +34,15 @@
                     this.simulationAccumulator -= 1 / 60;
                 }
                 if (this.renderAccumulator >= 1 / this.fpsLimit) {
-                    this.renderer.draw(this.world, this.settings.brightness);
+                    this.renderer.draw(this.world, this.settings, this.measuredFps);
                     this.frameCount += 1;
+                    this.fpsSampleFrames += 1;
+                    this.fpsSampleTime += this.renderAccumulator;
+                    if (this.fpsSampleTime >= 1) {
+                        this.measuredFps = this.fpsSampleFrames / this.fpsSampleTime;
+                        this.fpsSampleFrames = 0;
+                        this.fpsSampleTime = 0;
+                    }
                     this.renderAccumulator %= 1 / this.fpsLimit;
                 }
             }
@@ -64,6 +74,10 @@
             this.lastTime = 0;
             this.simulationAccumulator = 0;
             this.renderAccumulator = 0;
+        }
+
+        clearStats() {
+            this.world.clearStats();
         }
 
         handleDoubleClick(event) {

@@ -5,9 +5,14 @@ original APK's pixel-art assets in a browser-native autonomous fleet simulation
 for Wallpaper Engine.
 
 Three factions field capital ships, fighters, and bombers. Ships acquire targets,
-maneuver, fire lasers and guided missiles, recharge shields, explode, and scatter
-debris. The original starfield, planets, nebula, asteroids, ship sprites, engine
-overlays, shields, missiles, and debris are rendered with nearest-neighbor scaling.
+maneuver, retreat, fire lasers, ion shots, beams, and guided missiles, take hull
+and subsystem damage, recharge shields, explode, warp away, and scatter debris.
+The original starfield, planets, nebula, asteroids, ship sprites, engine overlays,
+shields, weapon effects, and debris are rendered with nearest-neighbor scaling.
+
+Battles support the original 70-ship ceiling. Winning factions earn persistent
+scores, surviving ships warp out, and a new system is generated. Lifetime spawn,
+kill, death, projectile, subsystem, shield, and warp statistics persist locally.
 
 ## Installation
 
@@ -22,6 +27,17 @@ The production wallpaper has no network or runtime package dependencies.
 Double-click a ship to destroy it. Interaction can be disabled in the wallpaper
 properties.
 
+## Settings
+
+Wallpaper Engine properties include the original battle modes and population
+limits; independent stars, space dust, planets, and asteroid-belt controls; all
+twelve ship-class spawn toggles; brightness, debris, slow motion, and automatic
+faction balancing; and all six original debug overlays.
+
+The faction score can be shown at the top or bottom of the screen. Horizontal and
+vertical offsets adjust its exact position. A reset toggle clears persistent score
+and statistics; switch it off and on again to perform another reset.
+
 ## Development
 
 ```text
@@ -29,8 +45,9 @@ npm install
 npm test
 ```
 
-The Playwright suite validates rendering, asset loading, fleet behavior, property
-changes, interaction, pause/FPS handling, and ultrawide render scaling.
+The Playwright suite validates rendering, asset loading, every settings group,
+score positioning and persistence, battle restarts, maximum-size battles, combat,
+interaction, pause/FPS handling, portrait layouts, and ultrawide render scaling.
 
 ## Port Notes
 
@@ -38,3 +55,6 @@ The APK identifies the original application as Pixel Fleet 1.3.1 by
 HaydenTheAndroid. This project preserves its default Survival setup: 6 capital
 ships, 12 fighters, 6 bombers, 30 asteroids, randomized background detail, ship
 debris, slow-motion explosions, and double-tap/double-click destruction.
+
+See [docs/PARITY_PLAN.md](docs/PARITY_PLAN.md) for the implementation matrix and
+remaining live-host acceptance gates.

@@ -86,10 +86,10 @@
                 "max": 200,
                 "step": 5
             },
-            "backgrounddetail": {
-                "text": "Background Detail",
+            "stars": {
+                "text": "Stars",
                 "type": "combo",
-                "value": "random",
+                "value": "randomly",
                 "options": [
                     {
                         "label": "Always",
@@ -97,7 +97,64 @@
                     },
                     {
                         "label": "Randomly",
-                        "value": "random"
+                        "value": "randomly"
+                    },
+                    {
+                        "label": "Never",
+                        "value": "never"
+                    }
+                ]
+            },
+            "spacedust": {
+                "text": "Space Dust",
+                "type": "combo",
+                "value": "randomly",
+                "options": [
+                    {
+                        "label": "Always",
+                        "value": "always"
+                    },
+                    {
+                        "label": "Randomly",
+                        "value": "randomly"
+                    },
+                    {
+                        "label": "Never",
+                        "value": "never"
+                    }
+                ]
+            },
+            "planets": {
+                "text": "Planets",
+                "type": "combo",
+                "value": "randomly",
+                "options": [
+                    {
+                        "label": "Always",
+                        "value": "always"
+                    },
+                    {
+                        "label": "Randomly",
+                        "value": "randomly"
+                    },
+                    {
+                        "label": "Never",
+                        "value": "never"
+                    }
+                ]
+            },
+            "asteroidbelt": {
+                "text": "Asteroid Belt",
+                "type": "combo",
+                "value": "randomly",
+                "options": [
+                    {
+                        "label": "Always",
+                        "value": "always"
+                    },
+                    {
+                        "label": "Randomly",
+                        "value": "randomly"
                     },
                     {
                         "label": "Never",
@@ -115,6 +172,11 @@
                 "type": "bool",
                 "value": true
             },
+            "autobalance": {
+                "text": "Auto-balance Factions",
+                "type": "bool",
+                "value": true
+            },
             "interaction": {
                 "text": "Double-click to Destroy",
                 "type": "bool",
@@ -127,6 +189,137 @@
                 "min": 25,
                 "max": 150,
                 "step": 5
+            },
+            "showscore": {
+                "text": "Show Score",
+                "type": "bool",
+                "value": false
+            },
+            "scoreorientation": {
+                "text": "Score Position",
+                "type": "combo",
+                "value": "bottom",
+                "options": [
+                    {
+                        "label": "Top",
+                        "value": "top"
+                    },
+                    {
+                        "label": "Bottom",
+                        "value": "bottom"
+                    }
+                ]
+            },
+            "scorehorizontaloffset": {
+                "text": "Score Horizontal Offset",
+                "type": "slider",
+                "value": 0,
+                "min": -120,
+                "max": 120,
+                "step": 1
+            },
+            "scoreverticaloffset": {
+                "text": "Score Vertical Offset",
+                "type": "slider",
+                "value": 0,
+                "min": 0,
+                "max": 240,
+                "step": 1
+            },
+            "resetstats": {
+                "text": "Reset Score and Statistics",
+                "type": "bool",
+                "value": false
+            },
+            "spawnearthcruiser": {
+                "text": "Spawn Earth Cruiser",
+                "type": "bool",
+                "value": true
+            },
+            "spawnearthmissilefrigate": {
+                "text": "Spawn Earth Missile Frigate",
+                "type": "bool",
+                "value": true
+            },
+            "spawnearthfighter": {
+                "text": "Spawn Earth Fighter",
+                "type": "bool",
+                "value": true
+            },
+            "spawnearthbomber": {
+                "text": "Spawn Earth Bomber",
+                "type": "bool",
+                "value": true
+            },
+            "spawngliesecorvette": {
+                "text": "Spawn Gliese Corvette",
+                "type": "bool",
+                "value": true
+            },
+            "spawngliesedreadnaught": {
+                "text": "Spawn Gliese Dreadnaught",
+                "type": "bool",
+                "value": true
+            },
+            "spawngliesefighter": {
+                "text": "Spawn Gliese Fighter",
+                "type": "bool",
+                "value": true
+            },
+            "spawngliesebomber": {
+                "text": "Spawn Gliese Bomber",
+                "type": "bool",
+                "value": true
+            },
+            "spawneridanigunboat": {
+                "text": "Spawn Eridani Gunboat",
+                "type": "bool",
+                "value": true
+            },
+            "spawneridanidestroyer": {
+                "text": "Spawn Eridani Destroyer",
+                "type": "bool",
+                "value": true
+            },
+            "spawneridanifighter": {
+                "text": "Spawn Eridani Fighter",
+                "type": "bool",
+                "value": true
+            },
+            "spawneridanibomber": {
+                "text": "Spawn Eridani Bomber",
+                "type": "bool",
+                "value": true
+            },
+            "showhitboxes": {
+                "text": "Debug: Hitboxes",
+                "type": "bool",
+                "value": false
+            },
+            "showhpbars": {
+                "text": "Debug: HP Bars",
+                "type": "bool",
+                "value": false
+            },
+            "showshipmovement": {
+                "text": "Debug: Ship Movement",
+                "type": "bool",
+                "value": false
+            },
+            "showshipstate": {
+                "text": "Debug: Ship State",
+                "type": "bool",
+                "value": false
+            },
+            "showprojectiletargets": {
+                "text": "Debug: Projectile Targets",
+                "type": "bool",
+                "value": false
+            },
+            "showfps": {
+                "text": "Debug: FPS",
+                "type": "bool",
+                "value": false
             }
         }
     }

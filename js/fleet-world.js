@@ -27,6 +27,32 @@
         gliese: ["gliese_bomber.png", "gliese_bomber_engine.png", 100, 150, 1.2],
         eridani: ["eridani_bomber.png", "eridani_bomber_engine.png", 100, 145, 1.18]
     };
+    const SPAWN_SETTINGS = {
+        "cruiser_1_4x.png": "spawnEarthCruiser",
+        "earth_missile_cruiser_4x.png": "spawnEarthMissileFrigate",
+        "earth_fighter.png": "spawnEarthFighter",
+        "earth_bomber.png": "spawnEarthBomber",
+        "gliese_corvette.png": "spawnGlieseCorvette",
+        "gliese_dreadnaught_4x.png": "spawnGlieseDreadnaught",
+        "gliese_fighter.png": "spawnGlieseFighter",
+        "gliese_bomber.png": "spawnGlieseBomber",
+        "epsilon_eridani_gunboat.png": "spawnEridaniGunboat",
+        "epsilon_eridani_destroyer.png": "spawnEridaniDestroyer",
+        "eridani_fighter.png": "spawnEridaniFighter",
+        "eridani_bomber.png": "spawnEridaniBomber"
+    };
+    const EMPTY_FACTION_STATS = {
+        score: 0,
+        spawns: 0,
+        kills: 0,
+        deaths: 0,
+        projectilesSpawned: 0,
+        projectilesHit: 0,
+        projectilesMissed: 0,
+        systemsDestroyed: 0,
+        shieldCollapses: 0,
+        warps: 0
+    };
 
     class Random {
         constructor(seed) {
@@ -59,8 +85,13 @@
             this.effects = [];
             this.asteroids = [];
             this.decorations = [];
+            this.spaceDust = [];
             this.nextId = 1;
             this.slowScale = 1;
+            this.battleState = "active";
+            this.battleTimer = 0;
+            this.battleNumber = 0;
+            this.stats = this.loadStats();
             this.restart();
         }
 
@@ -81,7 +112,10 @@
         }
 
         applySettings(settings) {
-            const restartKeys = ["simulationMode", "capitalShips", "fighters", "bombers", "asteroids", "backgroundDetail"];
+            const restartKeys = [
+                "simulationMode", "capitalShips", "fighters", "bombers", "asteroids", "stars", "spaceDust",
+                "planets", "asteroidBelt", "autoBalance", ...Object.values(SPAWN_SETTINGS)
+            ];
             const restart = restartKeys.some((key) => this.settings[key] !== settings[key]);
             this.settings = { ...settings };
             if (restart) this.restart();
@@ -94,39 +128,90 @@
             this.effects.length = 0;
             this.asteroids.length = 0;
             this.decorations.length = 0;
+            this.spaceDust.length = 0;
             this.nextId = 1;
+            this.battleState = "active";
+            this.battleTimer = 0;
+            this.battleNumber += 1;
+            this.stats.systemsVisited += 1;
             const asteroidCount = Math.max(0, Math.min(200, Math.round(this.settings.asteroids)));
             for (let index = 0; index < asteroidCount; index += 1) {
                 this.asteroids.push({
                     x: this.random.next(), y: this.random.next(),
                     size: this.random.range(8, 22), angle: this.random.range(0, TWO_PI),
-                    spin: this.random.range(-0.12, 0.12), sprite: `asteroid_${1 + Math.floor(this.random.next() * 3)}.png`
+                    spin: this.random.range(-0.12, 0.12), speedX: this.random.range(-0.008, 0.008),
+                    speedY: this.random.range(-0.008, 0.008), hitTimer: 0,
+                    sprite: `asteroid_${1 + Math.floor(this.random.next() * 3)}.png`
                 });
             }
-            const showDetail = this.settings.backgroundDetail === "always" ||
-                (this.settings.backgroundDetail === "random" && this.random.next() > 0.25);
-            if (showDetail) {
+            this.background = {
+                stars: this.showBackground("stars"),
+                spaceDust: this.showBackground("spaceDust"),
+                planets: this.showBackground("planets"),
+                asteroidBelt: this.showBackground("asteroidBelt")
+            };
+            if (this.background.planets) {
                 this.decorations.push({ sprite: "nebula.png", x: 0.2, y: 0.25, size: 520, alpha: 0.13, angle: 0.2 });
                 this.decorations.push({ sprite: this.random.pick(["habitable_planet.png", "gas_planet.png", "gas_ring_planet.png", "rock_planet.png"]), x: 0.82, y: 0.22, size: 120, alpha: 0.8, angle: -0.15 });
+            }
+            if (this.background.spaceDust) {
+                for (let index = 0; index < 90; index += 1) {
+                    this.spaceDust.push({ x: this.random.next(), y: this.random.next(), speed: this.random.range(0.002, 0.012), alpha: this.random.range(0.15, 0.5) });
+                }
+            }
+            if (this.background.asteroidBelt) {
+                for (let index = 0; index < 32; index += 1) {
+                    const angle = index / 32 * TWO_PI + this.random.range(-0.08, 0.08);
+                    this.asteroids.push({
+                        x: 0.5 + Math.cos(angle) * this.random.range(0.27, 0.34),
+                        y: 0.5 + Math.sin(angle) * this.random.range(0.1, 0.15),
+                        size: this.random.range(4, 11), angle: this.random.range(0, TWO_PI),
+                        spin: this.random.range(-0.2, 0.2), speedX: 0, speedY: 0, hitTimer: 0,
+                        sprite: `asteroid_${1 + Math.floor(this.random.next() * 3)}.png`, belt: true
+                    });
+                }
             }
             if (this.settings.simulationMode !== "noships") {
                 this.spawnGroup("capital", Math.round(this.settings.capitalShips));
                 this.spawnGroup("fighter", Math.round(this.settings.fighters));
                 this.spawnGroup("bomber", Math.round(this.settings.bombers));
             }
+            this.battleFactionCount = new Set(this.ships.map((ship) => ship.faction)).size;
+            this.saveStats();
+        }
+
+        showBackground(name) {
+            const value = this.settings[name];
+            return value === "always" || (value === "randomly" && this.random.next() >= 0.5);
         }
 
         spawnGroup(type, count) {
             const limit = type === "fighter" ? 30 : 20;
             for (let index = 0; index < Math.max(0, Math.min(limit, count)); index += 1) {
-                this.spawnShip(type, FACTIONS[index % FACTIONS.length]);
+                const faction = this.chooseFaction(type, index);
+                if (!faction || !this.spawnShip(type, faction)) break;
             }
         }
 
+        chooseFaction(type, index = 0) {
+            const enabled = FACTIONS.filter((faction) => this.definitionsFor(type, faction).length > 0);
+            if (!enabled.length) return null;
+            const totalScore = FACTIONS.reduce((total, faction) => total + this.stats.factions[faction].score, 0);
+            if (!this.settings.autoBalance || totalScore < 10) return enabled[index % enabled.length];
+            const highestScore = Math.max(...enabled.map((faction) => this.stats.factions[faction].score));
+            const weighted = enabled.flatMap((faction) => Array(Math.max(1, highestScore - this.stats.factions[faction].score + 1)).fill(faction));
+            return this.random.pick(weighted);
+        }
+
+        definitionsFor(type, faction) {
+            const definitions = type === "capital" ? CAPITALS[faction] : [type === "fighter" ? FIGHTERS[faction] : BOMBERS[faction]];
+            return definitions.filter((definition) => this.settings[SPAWN_SETTINGS[definition[0]]]);
+        }
+
         spawnShip(type, faction) {
-            let definition;
-            if (type === "capital") definition = this.random.pick(CAPITALS[faction]);
-            else definition = type === "fighter" ? FIGHTERS[faction] : BOMBERS[faction];
+            const definitions = this.definitionsFor(type, faction);
+            if (!definitions.length) return false;
+            const definition = this.random.pick(definitions);
             const lanes = { earth: 0.17, gliese: 0.5, eridani: 0.83 };
             const side = faction === "earth" ? 1 : faction === "eridani" ? -1 : (this.random.next() > 0.5 ? 1 : -1);
             const x = lanes[faction] * this.width + this.random.range(-this.width * 0.08, this.width * 0.08);
@@ -138,8 +223,11 @@
                 maxShield: definition[2] * 0.3, radius: type === "capital" ? 34 : type === "bomber" ? 17 : 11,
                 fireDelay: definition[4], fireTimer: this.random.range(0, definition[4]), targetId: 0,
                 retargetTimer: this.random.range(0, 0.5), state: "active", deathTimer: 0,
+                aiState: "engaging", systems: { shields: 100, engine: 100, weapons: 100 },
                 enginePulse: this.random.range(0, TWO_PI)
             });
+            this.stats.factions[faction].spawns += 1;
+            return true;
         }
 
         update(delta) {
@@ -148,12 +236,13 @@
             this.slowScale += (targetScale - this.slowScale) * Math.min(1, delta * 4);
             const step = delta * this.slowScale;
             this.time += step;
-            for (const asteroid of this.asteroids) asteroid.angle += asteroid.spin * step;
+            this.updateBackground(step);
             for (const ship of this.ships) this.updateShip(ship, step);
             this.updateProjectiles(step);
             this.updateEffects(step);
             this.ships = this.ships.filter((ship) => ship.state !== "dead");
-            if (this.settings.simulationMode === "galacticwar" || this.settings.simulationMode === "freeforall") {
+            this.processBattleState(step);
+            if (this.battleState === "active" && (this.settings.simulationMode === "galacticwar" || this.settings.simulationMode === "freeforall")) {
                 this.replenishShips();
             }
         }
@@ -163,6 +252,14 @@
                 ship.deathTimer += delta;
                 ship.angle += delta * 0.8;
                 if (ship.deathTimer > 0.9) ship.state = "dead";
+                return;
+            }
+            if (ship.state === "warping") {
+                const direction = Math.atan2(ship.y - this.height / 2, ship.x - this.width / 2);
+                ship.speed = Math.min(ship.maxSpeed * 8, ship.speed + ship.maxSpeed * delta * 3);
+                ship.x += Math.cos(direction) * ship.speed * delta;
+                ship.y += Math.sin(direction) * ship.speed * delta;
+                ship.enginePulse += delta * 16;
                 return;
             }
             ship.retargetTimer -= delta;
@@ -177,21 +274,25 @@
             const offsetY = target.y - ship.y;
             const distance = Math.hypot(offsetX, offsetY) || 1;
             const desired = Math.atan2(offsetY, offsetX);
-            let angleDelta = ((desired - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI;
+            ship.aiState = ship.health / ship.maxHealth < 0.22 ? "retreating" : "engaging";
+            const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : desired;
+            let angleDelta = ((targetAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI;
             const turnRate = ship.type === "fighter" ? 2.9 : ship.type === "bomber" ? 1.8 : 0.72;
             ship.angle += Math.max(-turnRate * delta, Math.min(turnRate * delta, angleDelta));
             const idealRange = ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130;
-            const thrust = distance > idealRange ? 1 : distance < idealRange * 0.55 ? -0.35 : 0.2;
-            ship.speed += (ship.maxSpeed * thrust - ship.speed) * Math.min(1, delta * 2.5);
+            const thrust = ship.aiState === "retreating" ? 1 : distance > idealRange ? 1 : distance < idealRange * 0.55 ? -0.35 : 0.2;
+            const engineFactor = 0.35 + ship.systems.engine / 100 * 0.65;
+            ship.speed += (ship.maxSpeed * engineFactor * thrust - ship.speed) * Math.min(1, delta * 2.5);
             ship.x += Math.cos(ship.angle) * ship.speed * delta;
             ship.y += Math.sin(ship.angle) * ship.speed * delta;
             ship.x = ((ship.x % this.width) + this.width) % this.width;
             ship.y = ((ship.y % this.height) + this.height) % this.height;
-            ship.shield = Math.min(ship.maxShield, ship.shield + ship.maxShield * 0.025 * delta);
+            ship.shield = Math.min(ship.maxShield, ship.shield + ship.maxShield * 0.025 * (ship.systems.shields / 100) * delta);
             ship.fireTimer -= delta;
-            if (ship.fireTimer <= 0 && distance < (ship.type === "capital" ? 520 : 340) && Math.abs(angleDelta) < 0.55) {
+            if (ship.aiState === "engaging" && ship.systems.weapons > 0 && ship.fireTimer <= 0 && distance < (ship.type === "capital" ? 520 : 340) && Math.abs(angleDelta) < 0.55) {
                 this.fire(ship, target);
-                ship.fireTimer = (ship.type === "fighter" ? 0.48 : ship.type === "bomber" ? 1.2 : 0.72) * this.random.range(0.8, 1.25);
+                const weaponFactor = 2 - ship.systems.weapons / 100;
+                ship.fireTimer = (ship.type === "fighter" ? 0.48 : ship.type === "bomber" ? 1.2 : 0.72) * weaponFactor * this.random.range(0.8, 1.25);
             }
             ship.enginePulse += delta * 8;
         }
@@ -213,9 +314,19 @@
         }
 
         fire(ship, target) {
-            const missile = ship.type === "bomber" || ship.sprite.includes("missile");
+            const weapon = ship.type === "bomber" || ship.sprite.includes("missile") ? "missile" :
+                ship.sprite === "gliese_corvette.png" ? "beam" :
+                    ship.faction === "eridani" && ship.type === "capital" ? "ion" : "laser";
+            const missile = weapon === "missile";
             const speed = missile ? 255 : ship.type === "fighter" ? 490 : 420;
-            const color = ship.faction === "earth" ? "#76d7ff" : ship.faction === "gliese" ? "#ff6659" : "#7dffad";
+            const color = weapon === "ion" ? "#35a8ff" : ship.faction === "earth" ? "#76d7ff" : ship.faction === "gliese" ? "#ff6659" : "#7dffad";
+            this.stats.factions[ship.faction].projectilesSpawned += 1;
+            if (weapon === "beam") {
+                this.damageShip(target, 14, ship.faction);
+                this.stats.factions[ship.faction].projectilesHit += 1;
+                this.effects.push({ kind: "beam", x: ship.x, y: ship.y, targetX: target.x, targetY: target.y, age: 0, life: 0.18, size: 3, color });
+                return;
+            }
             this.projectiles.push({
                 x: ship.x + Math.cos(ship.angle) * ship.radius,
                 y: ship.y + Math.sin(ship.angle) * ship.radius,
@@ -227,6 +338,7 @@
                 damage: missile ? 36 : ship.type === "capital" ? 18 : 8,
                 life: missile ? 4 : 1.8,
                 missile,
+                weapon,
                 color
             });
         }
@@ -250,25 +362,45 @@
                 projectile.y += projectile.vy * delta;
                 const target = this.ships.find((ship) => ship.id === projectile.targetId && ship.state === "active");
                 if (target && Math.hypot(target.x - projectile.x, target.y - projectile.y) < target.radius + 5) {
-                    this.damageShip(target, projectile.damage);
+                    this.damageShip(target, projectile.damage, projectile.faction);
                     projectile.life = 0;
+                    this.stats.factions[projectile.faction].projectilesHit += 1;
                     this.effects.push({ kind: "hit", x: projectile.x, y: projectile.y, age: 0, life: 0.28, size: projectile.missile ? 26 : 13, color: projectile.color });
                 }
             }
-            this.projectiles = this.projectiles.filter((projectile) => projectile.life > 0 && projectile.x > -100 && projectile.y > -100 && projectile.x < this.width + 100 && projectile.y < this.height + 100);
+            this.projectiles = this.projectiles.filter((projectile) => {
+                const active = projectile.life > 0 && projectile.x > -100 && projectile.y > -100 && projectile.x < this.width + 100 && projectile.y < this.height + 100;
+                if (!active && projectile.life !== 0) this.stats.factions[projectile.faction].projectilesMissed += 1;
+                return active;
+            });
         }
 
-        damageShip(ship, damage) {
+        damageShip(ship, damage, attackingFaction = null) {
+            const hadShield = ship.shield > 0;
             const shieldDamage = Math.min(ship.shield, damage);
             ship.shield -= shieldDamage;
+            if (hadShield && ship.shield <= 0) this.stats.factions[ship.faction].shieldCollapses += 1;
             ship.health -= damage - shieldDamage;
-            if (ship.health <= 0) this.destroyShip(ship);
+            const hullDamage = damage - shieldDamage;
+            if (hullDamage > 0 && this.random.next() < 0.3) {
+                const systemName = this.random.pick(["shields", "engine", "weapons"]);
+                const previous = ship.systems[systemName];
+                ship.systems[systemName] = Math.max(0, previous - hullDamage * 0.8);
+                if (previous > 0 && ship.systems[systemName] === 0 && attackingFaction && this.stats.factions[attackingFaction]) {
+                    this.stats.factions[attackingFaction].systemsDestroyed += 1;
+                }
+            }
+            if (ship.health <= 0 && this.destroyShip(ship)) {
+                if (attackingFaction && this.stats.factions[attackingFaction]) this.stats.factions[attackingFaction].kills += 1;
+                this.saveStats();
+            }
         }
 
         destroyShip(ship) {
             if (!ship || ship.state !== "active") return false;
             ship.state = "exploding";
             ship.deathTimer = 0;
+            this.stats.factions[ship.faction].deaths += 1;
             const bursts = ship.type === "capital" ? 9 : 4;
             for (let index = 0; index < bursts; index += 1) {
                 this.effects.push({
@@ -307,8 +439,85 @@
             const expected = { capital: Math.round(this.settings.capitalShips), fighter: Math.round(this.settings.fighters), bomber: Math.round(this.settings.bombers) };
             for (const type of Object.keys(expected)) {
                 const active = this.ships.filter((ship) => ship.type === type && ship.state !== "dead").length;
-                if (active < expected[type] && this.random.next() < 0.018) this.spawnShip(type, this.random.pick(FACTIONS));
+                if (active < expected[type] && this.random.next() < 0.018) {
+                    const faction = this.chooseFaction(type, active);
+                    if (faction) this.spawnShip(type, faction);
+                }
             }
+        }
+
+        updateBackground(delta) {
+            for (const dust of this.spaceDust) {
+                dust.x = (dust.x + dust.speed * delta) % 1;
+            }
+            for (const asteroid of this.asteroids) {
+                asteroid.angle += asteroid.spin * delta;
+                asteroid.x = ((asteroid.x + asteroid.speedX * delta) % 1 + 1) % 1;
+                asteroid.y = ((asteroid.y + asteroid.speedY * delta) % 1 + 1) % 1;
+                asteroid.hitTimer = Math.max(0, asteroid.hitTimer - delta);
+                if (asteroid.belt || asteroid.hitTimer > 0) continue;
+                const x = asteroid.x * this.width;
+                const y = asteroid.y * this.height;
+                const ship = this.ships.find((candidate) => candidate.state === "active" && Math.hypot(candidate.x - x, candidate.y - y) < candidate.radius + asteroid.size / 2);
+                if (ship) {
+                    this.damageShip(ship, 7, null);
+                    asteroid.hitTimer = 0.75;
+                    this.effects.push({ kind: "hit", x, y, age: 0, life: 0.25, size: 12, color: "#c8bba4" });
+                }
+            }
+        }
+
+        processBattleState(delta) {
+            if (this.settings.simulationMode === "noships" || this.settings.simulationMode === "freeforall" || this.battleFactionCount < 2) return;
+            if (this.battleState === "warp") {
+                this.battleTimer -= delta;
+                if (this.battleTimer <= 0) this.restart();
+                return;
+            }
+            const activeFactions = [...new Set(this.ships.filter((ship) => ship.state === "active").map((ship) => ship.faction))];
+            const remainingShips = this.ships.filter((ship) => ship.state === "active" || ship.state === "exploding");
+            if (remainingShips.length && activeFactions.length > 1) return;
+            const winner = activeFactions[0];
+            if (winner) this.stats.factions[winner].score += 1;
+            for (const ship of this.ships) {
+                if (ship.state === "active") {
+                    ship.state = "warping";
+                    this.stats.factions[ship.faction].warps += 1;
+                }
+            }
+            this.projectiles.length = 0;
+            this.battleState = "warp";
+            this.battleTimer = 3;
+            this.saveStats();
+        }
+
+        loadStats() {
+            const fresh = { systemsVisited: 0, factions: {} };
+            for (const faction of FACTIONS) fresh.factions[faction] = { ...EMPTY_FACTION_STATS };
+            try {
+                const saved = JSON.parse(localStorage.getItem("pixelFleetStatsV1"));
+                if (!saved || !saved.factions) return fresh;
+                fresh.systemsVisited = Number(saved.systemsVisited) || 0;
+                for (const faction of FACTIONS) Object.assign(fresh.factions[faction], saved.factions[faction] || {});
+            } catch (_error) {
+                return fresh;
+            }
+            return fresh;
+        }
+
+        saveStats() {
+            try {
+                localStorage.setItem("pixelFleetStatsV1", JSON.stringify(this.stats));
+            } catch (_error) {
+                // Wallpaper Engine may disable storage for local previews.
+            }
+        }
+
+        clearStats() {
+            this.stats = this.loadStats();
+            this.stats.systemsVisited = 0;
+            for (const faction of FACTIONS) this.stats.factions[faction] = { ...EMPTY_FACTION_STATS };
+            this.saveStats();
         }
 
         destroyAt(x, y, radius) {
