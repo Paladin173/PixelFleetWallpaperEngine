@@ -1,0 +1,133 @@
+{
+    "title": "Pixel Fleet Live Wallpaper",
+    "description": "A pixel-art space battle simulation with three autonomous fleets.",
+    "author": "HaydenTheAndroid",
+    "file": "index.html",
+    "preview": "preview.jpg",
+    "version": 2,
+    "type": "web",
+    "general": {
+        "properties": {
+            "renderquality": {
+                "text": "Render Quality",
+                "type": "combo",
+                "value": "auto",
+                "options": [
+                    {
+                        "label": "Auto",
+                        "value": "auto"
+                    },
+                    {
+                        "label": "High",
+                        "value": "high"
+                    },
+                    {
+                        "label": "Balanced",
+                        "value": "balanced"
+                    },
+                    {
+                        "label": "Performance",
+                        "value": "performance"
+                    }
+                ]
+            },
+            "simulationmode": {
+                "text": "Simulation Mode",
+                "type": "combo",
+                "value": "survival",
+                "options": [
+                    {
+                        "label": "Survival",
+                        "value": "survival"
+                    },
+                    {
+                        "label": "Galactic War",
+                        "value": "galacticwar"
+                    },
+                    {
+                        "label": "Free for All",
+                        "value": "freeforall"
+                    },
+                    {
+                        "label": "No Ships",
+                        "value": "noships"
+                    }
+                ]
+            },
+            "capitalships": {
+                "text": "Capital Ships",
+                "type": "slider",
+                "value": 6,
+                "min": 0,
+                "max": 20,
+                "step": 1
+            },
+            "fighters": {
+                "text": "Fighters",
+                "type": "slider",
+                "value": 12,
+                "min": 0,
+                "max": 30,
+                "step": 1
+            },
+            "bombers": {
+                "text": "Bombers",
+                "type": "slider",
+                "value": 6,
+                "min": 0,
+                "max": 20,
+                "step": 1
+            },
+            "asteroids": {
+                "text": "Asteroids",
+                "type": "slider",
+                "value": 30,
+                "min": 0,
+                "max": 200,
+                "step": 5
+            },
+            "backgrounddetail": {
+                "text": "Background Detail",
+                "type": "combo",
+                "value": "random",
+                "options": [
+                    {
+                        "label": "Always",
+                        "value": "always"
+                    },
+                    {
+                        "label": "Randomly",
+                        "value": "random"
+                    },
+                    {
+                        "label": "Never",
+                        "value": "never"
+                    }
+                ]
+            },
+            "debris": {
+                "text": "Ship Debris",
+                "type": "bool",
+                "value": true
+            },
+            "slowmotion": {
+                "text": "Slow Motion Explosions",
+                "type": "bool",
+                "value": true
+            },
+            "interaction": {
+                "text": "Double-click to Destroy",
+                "type": "bool",
+                "value": true
+            },
+            "brightness": {
+                "text": "Brightness",
+                "type": "slider",
+                "value": 100,
+                "min": 25,
+                "max": 150,
+                "step": 5
+            }
+        }
+    }
+}
