@@ -8,8 +8,27 @@
     "type": "web",
     "general": {
         "properties": {
-            "renderquality": {
-                "text": "DISPLAY | Render Quality",
+                "settingscategory": {
+                    "order": 0,
+                    "text": "Settings Category",
+                    "type": "combo",
+                    "value": "display",
+                    "options": [
+                        { "label": "Display", "value": "display" },
+                        { "label": "Battle", "value": "battle" },
+                        { "label": "Environment", "value": "environment" },
+                        { "label": "Effects & Interaction", "value": "effects" },
+                        { "label": "Scoreboard", "value": "scoreboard" },
+                        { "label": "Earth Fleet", "value": "earth" },
+                        { "label": "Gliese Fleet", "value": "gliese" },
+                        { "label": "Eridani Fleet", "value": "eridani" },
+                        { "label": "Diagnostics", "value": "diagnostics" }
+                    ]
+                },
+            "a01renderquality": {
+                    "order": 10,
+                    "condition": "settingscategory.value === 'display'",
+                    "text": "Render Quality",
                 "type": "combo",
                 "value": "auto",
                 "options": [
@@ -31,24 +50,30 @@
                     }
                 ]
             },
-            "zoom": {
-                "text": "DISPLAY | Camera Zoom Out",
+            "a02zoom": {
+                "order": 11,
+                "condition": "settingscategory.value === 'display'",
+                "text": "Camera Zoom Out",
                 "type": "slider",
                 "value": 1,
                 "min": 1,
                 "max": 5,
                 "step": 0.1
             },
-            "brightness": {
-                "text": "DISPLAY | Brightness",
+            "a03brightness": {
+                "order": 12,
+                "condition": "settingscategory.value === 'display'",
+                "text": "Brightness",
                 "type": "slider",
                 "value": 100,
                 "min": 25,
                 "max": 150,
                 "step": 5
             },
-            "simulationmode": {
-                "text": "BATTLE | Simulation Mode",
+            "b01simulationmode": {
+                "order": 20,
+                "condition": "settingscategory.value === 'battle'",
+                "text": "Simulation Mode",
                 "type": "combo",
                 "value": "survival",
                 "options": [
@@ -70,40 +95,50 @@
                     }
                 ]
             },
-            "capitalships": {
-                "text": "BATTLE | Capital Ships",
+            "b02capitalships": {
+                "order": 21,
+                "condition": "settingscategory.value === 'battle'",
+                "text": "Capital Ships",
                 "type": "slider",
                 "value": 6,
                 "min": 0,
                 "max": 20,
                 "step": 1
             },
-            "fighters": {
-                "text": "BATTLE | Fighters",
+            "b03fighters": {
+                "order": 22,
+                "condition": "settingscategory.value === 'battle'",
+                "text": "Fighters",
                 "type": "slider",
                 "value": 12,
                 "min": 0,
                 "max": 30,
                 "step": 1
             },
-            "bombers": {
-                "text": "BATTLE | Bombers",
+            "b04bombers": {
+                "order": 23,
+                "condition": "settingscategory.value === 'battle'",
+                "text": "Bombers",
                 "type": "slider",
                 "value": 6,
                 "min": 0,
                 "max": 20,
                 "step": 1
             },
-            "asteroids": {
-                "text": "ENVIRONMENT | Asteroids",
+            "c01asteroids": {
+                "order": 30,
+                "condition": "settingscategory.value === 'environment'",
+                "text": "Asteroids",
                 "type": "slider",
                 "value": 30,
                 "min": 0,
                 "max": 200,
                 "step": 5
             },
-            "stars": {
-                "text": "ENVIRONMENT | Stars",
+            "c02stars": {
+                "order": 31,
+                "condition": "settingscategory.value === 'environment'",
+                "text": "Stars",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -121,8 +156,10 @@
                     }
                 ]
             },
-            "spacedust": {
-                "text": "ENVIRONMENT | Space Dust",
+            "c03spacedust": {
+                "order": 32,
+                "condition": "settingscategory.value === 'environment'",
+                "text": "Space Dust",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -140,8 +177,10 @@
                     }
                 ]
             },
-            "planets": {
-                "text": "ENVIRONMENT | Planets",
+            "c04planets": {
+                "order": 33,
+                "condition": "settingscategory.value === 'environment'",
+                "text": "Planets",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -159,8 +198,10 @@
                     }
                 ]
             },
-            "asteroidbelt": {
-                "text": "ENVIRONMENT | Asteroid Belt",
+            "c05asteroidbelt": {
+                "order": 34,
+                "condition": "settingscategory.value === 'environment'",
+                "text": "Asteroid Belt",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -178,33 +219,45 @@
                     }
                 ]
             },
-            "debris": {
-                "text": "EFFECTS & INTERACTION | Ship Debris",
+            "d01debris": {
+                "order": 40,
+                "condition": "settingscategory.value === 'effects'",
+                "text": "Ship Debris",
                 "type": "bool",
                 "value": true
             },
-            "slowmotion": {
-                "text": "EFFECTS & INTERACTION | Slow Motion Explosions",
+            "d02slowmotion": {
+                "order": 41,
+                "condition": "settingscategory.value === 'effects'",
+                "text": "Slow Motion Explosions",
                 "type": "bool",
                 "value": true
             },
-            "autobalance": {
-                "text": "EFFECTS & INTERACTION | Auto-balance Factions",
+            "d03autobalance": {
+                "order": 42,
+                "condition": "settingscategory.value === 'effects'",
+                "text": "Auto-balance Factions",
                 "type": "bool",
                 "value": true
             },
-            "interaction": {
-                "text": "EFFECTS & INTERACTION | Double-click to Destroy",
+            "d04interaction": {
+                "order": 43,
+                "condition": "settingscategory.value === 'effects'",
+                "text": "Double-click to Destroy",
                 "type": "bool",
                 "value": true
             },
-            "showscore": {
-                "text": "SCOREBOARD | Show Score",
+            "e01showscore": {
+                "order": 50,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Show Score",
                 "type": "bool",
                 "value": false
             },
-            "scoreorientation": {
-                "text": "SCOREBOARD | Position",
+            "e02scoreorientation": {
+                "order": 51,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Position",
                 "type": "combo",
                 "value": "bottom",
                 "options": [
@@ -218,148 +271,200 @@
                     }
                 ]
             },
-            "scorehorizontaloffset": {
-                "text": "SCOREBOARD | Horizontal Offset",
+            "e03scorehorizontaloffset": {
+                "order": 52,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Horizontal Offset",
                 "type": "slider",
                 "value": 0,
                 "min": -1000,
                 "max": 1000,
                 "step": 1
             },
-            "scoreverticaloffset": {
-                "text": "SCOREBOARD | Vertical Offset",
+            "e04scoreverticaloffset": {
+                "order": 53,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Vertical Offset",
                 "type": "slider",
                 "value": 0,
                 "min": 0,
                 "max": 1000,
                 "step": 1
             },
-            "scoresize": {
-                "text": "SCOREBOARD | Font Size",
+            "e05scoresize": {
+                "order": 54,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Font Size",
                 "type": "slider",
                 "value": 100,
                 "min": 50,
                 "max": 250,
                 "step": 5
             },
-            "scoreopacity": {
-                "text": "SCOREBOARD | Text Opacity",
+            "e06scoreopacity": {
+                "order": 55,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Text Opacity",
                 "type": "slider",
                 "value": 100,
                 "min": 10,
                 "max": 100,
                 "step": 5
             },
-            "scorecolor": {
-                "text": "SCOREBOARD | Text Color",
+            "e07scorecolor": {
+                "order": 56,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Text Color",
                 "type": "color",
                 "value": "1 1 1"
             },
-            "scorebackground": {
-                "text": "SCOREBOARD | Show Background",
+            "e08scorebackground": {
+                "order": 57,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Show Background",
                 "type": "bool",
                 "value": false
             },
-            "scorebackgroundopacity": {
-                "text": "SCOREBOARD | Background Opacity",
+            "e09scorebackgroundopacity": {
+                "order": 58,
+                "condition": "settingscategory.value === 'scoreboard' && e08scorebackground.value === true",
+                "text": "Background Opacity",
                 "type": "slider",
                 "value": 55,
                 "min": 10,
                 "max": 100,
                 "step": 5
             },
-            "resetstats": {
-                "text": "SCOREBOARD | Reset Score and Statistics",
+            "e10resetstats": {
+                "order": 59,
+                "condition": "settingscategory.value === 'scoreboard'",
+                "text": "Reset Score and Statistics",
                 "type": "bool",
                 "value": false
             },
-            "spawnearthcruiser": {
-                "text": "EARTH FLEET | Cruiser",
+            "f01spawnearthcruiser": {
+                "order": 60,
+                "condition": "settingscategory.value === 'earth'",
+                "text": "Cruiser",
                 "type": "bool",
                 "value": true
             },
-            "spawnearthmissilefrigate": {
-                "text": "EARTH FLEET | Missile Frigate",
+            "f02spawnearthmissilefrigate": {
+                "order": 61,
+                "condition": "settingscategory.value === 'earth'",
+                "text": "Missile Frigate",
                 "type": "bool",
                 "value": true
             },
-            "spawnearthfighter": {
-                "text": "EARTH FLEET | Fighter",
+            "f03spawnearthfighter": {
+                "order": 62,
+                "condition": "settingscategory.value === 'earth'",
+                "text": "Fighter",
                 "type": "bool",
                 "value": true
             },
-            "spawnearthbomber": {
-                "text": "EARTH FLEET | Bomber",
+            "f04spawnearthbomber": {
+                "order": 63,
+                "condition": "settingscategory.value === 'earth'",
+                "text": "Bomber",
                 "type": "bool",
                 "value": true
             },
-            "spawngliesecorvette": {
-                "text": "GLIESE FLEET | Corvette",
+            "g01spawngliesecorvette": {
+                "order": 70,
+                "condition": "settingscategory.value === 'gliese'",
+                "text": "Corvette",
                 "type": "bool",
                 "value": true
             },
-            "spawngliesedreadnaught": {
-                "text": "GLIESE FLEET | Dreadnaught",
+            "g02spawngliesedreadnaught": {
+                "order": 71,
+                "condition": "settingscategory.value === 'gliese'",
+                "text": "Dreadnaught",
                 "type": "bool",
                 "value": true
             },
-            "spawngliesefighter": {
-                "text": "GLIESE FLEET | Fighter",
+            "g03spawngliesefighter": {
+                "order": 72,
+                "condition": "settingscategory.value === 'gliese'",
+                "text": "Fighter",
                 "type": "bool",
                 "value": true
             },
-            "spawngliesebomber": {
-                "text": "GLIESE FLEET | Bomber",
+            "g04spawngliesebomber": {
+                "order": 73,
+                "condition": "settingscategory.value === 'gliese'",
+                "text": "Bomber",
                 "type": "bool",
                 "value": true
             },
-            "spawneridanigunboat": {
-                "text": "ERIDANI FLEET | Gunboat",
+            "h01spawneridanigunboat": {
+                "order": 80,
+                "condition": "settingscategory.value === 'eridani'",
+                "text": "Gunboat",
                 "type": "bool",
                 "value": true
             },
-            "spawneridanidestroyer": {
-                "text": "ERIDANI FLEET | Destroyer",
+            "h02spawneridanidestroyer": {
+                "order": 81,
+                "condition": "settingscategory.value === 'eridani'",
+                "text": "Destroyer",
                 "type": "bool",
                 "value": true
             },
-            "spawneridanifighter": {
-                "text": "ERIDANI FLEET | Fighter",
+            "h03spawneridanifighter": {
+                "order": 82,
+                "condition": "settingscategory.value === 'eridani'",
+                "text": "Fighter",
                 "type": "bool",
                 "value": true
             },
-            "spawneridanibomber": {
-                "text": "ERIDANI FLEET | Bomber",
+            "h04spawneridanibomber": {
+                "order": 83,
+                "condition": "settingscategory.value === 'eridani'",
+                "text": "Bomber",
                 "type": "bool",
                 "value": true
             },
-            "showhitboxes": {
-                "text": "DIAGNOSTICS | Hitboxes",
+            "i01showhitboxes": {
+                "order": 90,
+                "condition": "settingscategory.value === 'diagnostics'",
+                "text": "Hitboxes",
                 "type": "bool",
                 "value": false
             },
-            "showhpbars": {
-                "text": "DIAGNOSTICS | HP Bars",
+            "i02showhpbars": {
+                "order": 91,
+                "condition": "settingscategory.value === 'diagnostics'",
+                "text": "HP Bars",
                 "type": "bool",
                 "value": false
             },
-            "showshipmovement": {
-                "text": "DIAGNOSTICS | Ship Movement",
+            "i03showshipmovement": {
+                "order": 92,
+                "condition": "settingscategory.value === 'diagnostics'",
+                "text": "Ship Movement",
                 "type": "bool",
                 "value": false
             },
-            "showshipstate": {
-                "text": "DIAGNOSTICS | Ship State",
+            "i04showshipstate": {
+                "order": 93,
+                "condition": "settingscategory.value === 'diagnostics'",
+                "text": "Ship State",
                 "type": "bool",
                 "value": false
             },
-            "showprojectiletargets": {
-                "text": "DIAGNOSTICS | Projectile Targets",
+            "i05showprojectiletargets": {
+                "order": 94,
+                "condition": "settingscategory.value === 'diagnostics'",
+                "text": "Projectile Targets",
                 "type": "bool",
                 "value": false
             },
-            "showfps": {
-                "text": "DIAGNOSTICS | FPS",
+            "i06showfps": {
+                "order": 95,
+                "condition": "settingscategory.value === 'diagnostics'",
+                "text": "FPS",
                 "type": "bool",
                 "value": false
             }

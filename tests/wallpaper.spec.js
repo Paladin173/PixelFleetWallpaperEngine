@@ -12,32 +12,42 @@ test("Wallpaper Engine manifest and original assets are complete", async () => {
     const project = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "project.json"), "utf8"));
     expect(project.type).toBe("web");
     expect(project.file).toBe("index.html");
-    expect(project.general.properties.simulationmode.value).toBe("survival");
-    expect(project.general.properties.capitalships.value).toBe(6);
-    expect(project.general.properties.fighters.value).toBe(12);
-    expect(project.general.properties.bombers.value).toBe(6);
-    expect(Object.keys(project.general.properties)).toHaveLength(44);
-    const originalSettings = [
-        "zoom", "simulationmode", "capitalships", "fighters", "bombers", "asteroids", "stars", "spacedust", "planets",
-        "asteroidbelt", "debris", "slowmotion", "autobalance", "interaction", "brightness", "showscore",
-        "scoreorientation", "scorehorizontaloffset", "scoreverticaloffset", "scoresize", "scoreopacity", "scorecolor",
-        "scorebackground", "scorebackgroundopacity", "resetstats", "spawnearthcruiser",
-        "spawnearthmissilefrigate", "spawnearthfighter", "spawnearthbomber", "spawngliesecorvette",
-        "spawngliesedreadnaught", "spawngliesefighter", "spawngliesebomber", "spawneridanigunboat",
-        "spawneridanidestroyer", "spawneridanifighter", "spawneridanibomber", "showhitboxes", "showhpbars",
-        "showshipmovement", "showshipstate", "showprojectiletargets", "showfps"
+    expect(project.general.properties.b01simulationmode.value).toBe("survival");
+    expect(project.general.properties.b02capitalships.value).toBe(6);
+    expect(project.general.properties.b03fighters.value).toBe(12);
+    expect(project.general.properties.b04bombers.value).toBe(6);
+    expect(Object.keys(project.general.properties)).toHaveLength(45);
+    const orderedSettings = [
+        "settingscategory",
+        "a01renderquality", "a02zoom", "a03brightness",
+        "b01simulationmode", "b02capitalships", "b03fighters", "b04bombers",
+        "c01asteroids", "c02stars", "c03spacedust", "c04planets", "c05asteroidbelt",
+        "d01debris", "d02slowmotion", "d03autobalance", "d04interaction",
+        "e01showscore", "e02scoreorientation", "e03scorehorizontaloffset", "e04scoreverticaloffset", "e05scoresize",
+        "e06scoreopacity", "e07scorecolor", "e08scorebackground", "e09scorebackgroundopacity", "e10resetstats",
+        "f01spawnearthcruiser", "f02spawnearthmissilefrigate", "f03spawnearthfighter", "f04spawnearthbomber",
+        "g01spawngliesecorvette", "g02spawngliesedreadnaught", "g03spawngliesefighter", "g04spawngliesebomber",
+        "h01spawneridanigunboat", "h02spawneridanidestroyer", "h03spawneridanifighter", "h04spawneridanibomber",
+        "i01showhitboxes", "i02showhpbars", "i03showshipmovement", "i04showshipstate", "i05showprojectiletargets", "i06showfps"
     ];
-    for (const key of originalSettings) expect(project.general.properties[key]).toBeDefined();
-    expect(project.general.properties.scorehorizontaloffset).toMatchObject({ type: "slider", min: -1000, max: 1000, value: 0 });
-    expect(project.general.properties.scoreverticaloffset).toMatchObject({ type: "slider", min: 0, max: 1000, value: 0 });
-    expect(project.general.properties.zoom).toMatchObject({ text: "DISPLAY | Camera Zoom Out", type: "slider", min: 1, max: 5, step: 0.1, value: 1 });
-    expect(Object.keys(project.general.properties).slice(0, 3)).toEqual(["renderquality", "zoom", "brightness"]);
-    expect(project.general.properties.stars.options).toContainEqual({ label: "Never", value: "never" });
-    expect(project.general.properties.stars.text).toBe("ENVIRONMENT | Stars");
-    expect(project.general.properties.planets.text).toBe("ENVIRONMENT | Planets");
-    expect(project.general.properties.spawnearthcruiser.text).toBe("EARTH FLEET | Cruiser");
-    expect(project.general.properties.spawngliesecorvette.text).toBe("GLIESE FLEET | Corvette");
-    expect(project.general.properties.spawneridanigunboat.text).toBe("ERIDANI FLEET | Gunboat");
+    expect(Object.keys(project.general.properties).sort()).toEqual([...orderedSettings].sort());
+    expect(project.general.properties.e03scorehorizontaloffset).toMatchObject({ type: "slider", min: -1000, max: 1000, value: 0 });
+    expect(project.general.properties.e04scoreverticaloffset).toMatchObject({ type: "slider", min: 0, max: 1000, value: 0 });
+    expect(project.general.properties.settingscategory).toMatchObject({ order: 0, text: "Settings Category", type: "combo", value: "display" });
+    expect(project.general.properties.settingscategory.options.map(({ value }) => value)).toEqual([
+        "display", "battle", "environment", "effects", "scoreboard", "earth", "gliese", "eridani", "diagnostics"
+    ]);
+    expect(project.general.properties.a02zoom).toMatchObject({ order: 11, condition: "settingscategory.value === 'display'", text: "Camera Zoom Out", type: "slider", min: 1, max: 5, step: 0.1, value: 1 });
+    expect(project.general.properties.c02stars.options).toContainEqual({ label: "Never", value: "never" });
+    expect(project.general.properties.c02stars).toMatchObject({ order: 31, condition: "settingscategory.value === 'environment'", text: "Stars" });
+    expect(project.general.properties.c04planets).toMatchObject({ order: 33, condition: "settingscategory.value === 'environment'", text: "Planets" });
+    expect(project.general.properties.f01spawnearthcruiser).toMatchObject({ order: 60, condition: "settingscategory.value === 'earth'", text: "Cruiser" });
+    expect(project.general.properties.g01spawngliesecorvette).toMatchObject({ order: 70, condition: "settingscategory.value === 'gliese'", text: "Corvette" });
+    expect(project.general.properties.h01spawneridanigunboat).toMatchObject({ order: 80, condition: "settingscategory.value === 'eridani'", text: "Gunboat" });
+    const configurableProperties = Object.entries(project.general.properties).filter(([key]) => key !== "settingscategory");
+    expect(new Set(configurableProperties.map(([, property]) => property.order)).size).toBe(configurableProperties.length);
+    for (const [, property] of configurableProperties) expect(property.condition).toContain("settingscategory.value ===");
+    expect(project.general.properties.e09scorebackgroundopacity.condition).toContain("e08scorebackground.value === true");
     for (const filename of ["static_bg.png", "cruiser_1_4x.png", "gliese_dreadnaught_4x.png", "epsilon_eridani_gunboat.png"]) {
         expect(fs.statSync(path.join(__dirname, "..", "assets", filename)).size).toBeGreaterThan(0);
     }
@@ -104,13 +114,13 @@ test("all original settings map and constrain fleet and background generation", 
     await openWallpaper(page);
     const state = await page.evaluate(() => {
         window.wallpaperPropertyListener.applyUserProperties({
-            stars: { value: "never" }, spacedust: { value: "never" }, planets: { value: "never" }, asteroidbelt: { value: "never" },
-            spawnearthmissilefrigate: { value: false }, spawnearthfighter: { value: false }, spawnearthbomber: { value: false },
-            spawngliesecorvette: { value: false }, spawngliesedreadnaught: { value: false }, spawngliesefighter: { value: false },
-            spawngliesebomber: { value: false }, spawneridanigunboat: { value: false }, spawneridanidestroyer: { value: false },
-            spawneridanifighter: { value: false }, spawneridanibomber: { value: false },
-            showhitboxes: { value: true }, showhpbars: { value: true }, showshipmovement: { value: true },
-            showshipstate: { value: true }, showprojectiletargets: { value: true }, showfps: { value: true }
+            c02stars: { value: "never" }, c03spacedust: { value: "never" }, c04planets: { value: "never" }, c05asteroidbelt: { value: "never" },
+            f02spawnearthmissilefrigate: { value: false }, f03spawnearthfighter: { value: false }, f04spawnearthbomber: { value: false },
+            g01spawngliesecorvette: { value: false }, g02spawngliesedreadnaught: { value: false }, g03spawngliesefighter: { value: false },
+            g04spawngliesebomber: { value: false }, h01spawneridanigunboat: { value: false }, h02spawneridanidestroyer: { value: false },
+            h03spawneridanifighter: { value: false }, h04spawneridanibomber: { value: false },
+            i01showhitboxes: { value: true }, i02showhpbars: { value: true }, i03showshipmovement: { value: true },
+            i04showshipstate: { value: true }, i05showprojectiletargets: { value: true }, i06showfps: { value: true }
         });
         const app = window.pixelFleetApp;
         app.renderer.draw(app.world, app.settings, 60);
@@ -129,6 +139,24 @@ test("all original settings map and constrain fleet and background generation", 
     expect(state.decorations).toBe(0);
     expect(state.settings.showFps).toBe(true);
     expect(state.settings.showProjectileTargets).toBe(true);
+});
+
+test("switching settings categories does not restart the battle", async ({ page }) => {
+    await openWallpaper(page);
+    const before = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        return { battleNumber: world.battleNumber, shipIds: world.ships.map((ship) => ship.id), time: world.time };
+    });
+    await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({
+        settingscategory: { value: "environment" }
+    }));
+    const after = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        return { battleNumber: world.battleNumber, shipIds: world.ships.map((ship) => ship.id), time: world.time };
+    });
+    expect(after.battleNumber).toBe(before.battleNumber);
+    expect(after.shipIds).toEqual(before.shipIds);
+    expect(after.time).toBeGreaterThanOrEqual(before.time);
 });
 
 test("score placement, winner scoring, warp restart, persistence, and reset match the original lifecycle", async ({ page }) => {
