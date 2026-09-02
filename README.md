@@ -34,9 +34,17 @@ limits; independent stars, space dust, planets, and asteroid-belt controls; all
 twelve ship-class spawn toggles; brightness, debris, slow motion, and automatic
 faction balancing; and all six original debug overlays.
 
-The faction score can be shown at the top or bottom of the screen. Horizontal and
-vertical offsets adjust its exact position. A reset toggle clears persistent score
-and statistics; switch it off and on again to perform another reset.
+Camera zoom-out ranges from 1x to 5x. The new 1x baseline already shows 2.5 times
+as much battlefield as the original view, while higher values reveal progressively
+more space. Set Stars to Never to hide the starfield independently of the other
+background elements. Settings use clear section prefixes for display, battle,
+environment, effects, scoreboard, each faction's fleet, and diagnostics.
+
+The faction score can be shown at the top or bottom of the screen. Extended
+horizontal and vertical offsets adjust its exact position on high-resolution
+displays. Font size, text color, text opacity, and an optional adjustable-opacity
+background are configurable. A reset toggle clears persistent score and
+statistics; switch it off and on again to perform another reset.
 
 ## Development
 
@@ -46,8 +54,9 @@ npm test
 ```
 
 The Playwright suite validates rendering, asset loading, every settings group,
-score positioning and persistence, battle restarts, maximum-size battles, combat,
-interaction, pause/FPS handling, portrait layouts, and ultrawide render scaling.
+camera zoom, score appearance, positioning and persistence, star hiding, battle
+restarts, maximum-size battles, combat, interaction, pause/FPS handling, portrait
+layouts, and ultrawide render scaling.
 
 ## Port Notes
 

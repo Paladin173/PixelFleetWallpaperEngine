@@ -9,7 +9,7 @@
     "general": {
         "properties": {
             "renderquality": {
-                "text": "Render Quality",
+                "text": "DISPLAY | Render Quality",
                 "type": "combo",
                 "value": "auto",
                 "options": [
@@ -31,8 +31,24 @@
                     }
                 ]
             },
+            "zoom": {
+                "text": "DISPLAY | Camera Zoom Out",
+                "type": "slider",
+                "value": 1,
+                "min": 1,
+                "max": 5,
+                "step": 0.1
+            },
+            "brightness": {
+                "text": "DISPLAY | Brightness",
+                "type": "slider",
+                "value": 100,
+                "min": 25,
+                "max": 150,
+                "step": 5
+            },
             "simulationmode": {
-                "text": "Simulation Mode",
+                "text": "BATTLE | Simulation Mode",
                 "type": "combo",
                 "value": "survival",
                 "options": [
@@ -55,7 +71,7 @@
                 ]
             },
             "capitalships": {
-                "text": "Capital Ships",
+                "text": "BATTLE | Capital Ships",
                 "type": "slider",
                 "value": 6,
                 "min": 0,
@@ -63,7 +79,7 @@
                 "step": 1
             },
             "fighters": {
-                "text": "Fighters",
+                "text": "BATTLE | Fighters",
                 "type": "slider",
                 "value": 12,
                 "min": 0,
@@ -71,7 +87,7 @@
                 "step": 1
             },
             "bombers": {
-                "text": "Bombers",
+                "text": "BATTLE | Bombers",
                 "type": "slider",
                 "value": 6,
                 "min": 0,
@@ -79,7 +95,7 @@
                 "step": 1
             },
             "asteroids": {
-                "text": "Asteroids",
+                "text": "ENVIRONMENT | Asteroids",
                 "type": "slider",
                 "value": 30,
                 "min": 0,
@@ -87,7 +103,7 @@
                 "step": 5
             },
             "stars": {
-                "text": "Stars",
+                "text": "ENVIRONMENT | Stars",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -106,7 +122,7 @@
                 ]
             },
             "spacedust": {
-                "text": "Space Dust",
+                "text": "ENVIRONMENT | Space Dust",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -125,7 +141,7 @@
                 ]
             },
             "planets": {
-                "text": "Planets",
+                "text": "ENVIRONMENT | Planets",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -144,7 +160,7 @@
                 ]
             },
             "asteroidbelt": {
-                "text": "Asteroid Belt",
+                "text": "ENVIRONMENT | Asteroid Belt",
                 "type": "combo",
                 "value": "randomly",
                 "options": [
@@ -163,40 +179,32 @@
                 ]
             },
             "debris": {
-                "text": "Ship Debris",
+                "text": "EFFECTS & INTERACTION | Ship Debris",
                 "type": "bool",
                 "value": true
             },
             "slowmotion": {
-                "text": "Slow Motion Explosions",
+                "text": "EFFECTS & INTERACTION | Slow Motion Explosions",
                 "type": "bool",
                 "value": true
             },
             "autobalance": {
-                "text": "Auto-balance Factions",
+                "text": "EFFECTS & INTERACTION | Auto-balance Factions",
                 "type": "bool",
                 "value": true
             },
             "interaction": {
-                "text": "Double-click to Destroy",
+                "text": "EFFECTS & INTERACTION | Double-click to Destroy",
                 "type": "bool",
                 "value": true
             },
-            "brightness": {
-                "text": "Brightness",
-                "type": "slider",
-                "value": 100,
-                "min": 25,
-                "max": 150,
-                "step": 5
-            },
             "showscore": {
-                "text": "Show Score",
+                "text": "SCOREBOARD | Show Score",
                 "type": "bool",
                 "value": false
             },
             "scoreorientation": {
-                "text": "Score Position",
+                "text": "SCOREBOARD | Position",
                 "type": "combo",
                 "value": "bottom",
                 "options": [
@@ -211,113 +219,147 @@
                 ]
             },
             "scorehorizontaloffset": {
-                "text": "Score Horizontal Offset",
+                "text": "SCOREBOARD | Horizontal Offset",
                 "type": "slider",
                 "value": 0,
-                "min": -120,
-                "max": 120,
+                "min": -1000,
+                "max": 1000,
                 "step": 1
             },
             "scoreverticaloffset": {
-                "text": "Score Vertical Offset",
+                "text": "SCOREBOARD | Vertical Offset",
                 "type": "slider",
                 "value": 0,
                 "min": 0,
-                "max": 240,
+                "max": 1000,
                 "step": 1
             },
+            "scoresize": {
+                "text": "SCOREBOARD | Font Size",
+                "type": "slider",
+                "value": 100,
+                "min": 50,
+                "max": 250,
+                "step": 5
+            },
+            "scoreopacity": {
+                "text": "SCOREBOARD | Text Opacity",
+                "type": "slider",
+                "value": 100,
+                "min": 10,
+                "max": 100,
+                "step": 5
+            },
+            "scorecolor": {
+                "text": "SCOREBOARD | Text Color",
+                "type": "color",
+                "value": "1 1 1"
+            },
+            "scorebackground": {
+                "text": "SCOREBOARD | Show Background",
+                "type": "bool",
+                "value": false
+            },
+            "scorebackgroundopacity": {
+                "text": "SCOREBOARD | Background Opacity",
+                "type": "slider",
+                "value": 55,
+                "min": 10,
+                "max": 100,
+                "step": 5
+            },
             "resetstats": {
-                "text": "Reset Score and Statistics",
+                "text": "SCOREBOARD | Reset Score and Statistics",
                 "type": "bool",
                 "value": false
             },
             "spawnearthcruiser": {
-                "text": "Spawn Earth Cruiser",
+                "text": "EARTH FLEET | Cruiser",
                 "type": "bool",
                 "value": true
             },
             "spawnearthmissilefrigate": {
-                "text": "Spawn Earth Missile Frigate",
+                "text": "EARTH FLEET | Missile Frigate",
                 "type": "bool",
                 "value": true
             },
             "spawnearthfighter": {
-                "text": "Spawn Earth Fighter",
+                "text": "EARTH FLEET | Fighter",
                 "type": "bool",
                 "value": true
             },
             "spawnearthbomber": {
-                "text": "Spawn Earth Bomber",
+                "text": "EARTH FLEET | Bomber",
                 "type": "bool",
                 "value": true
             },
             "spawngliesecorvette": {
-                "text": "Spawn Gliese Corvette",
+                "text": "GLIESE FLEET | Corvette",
                 "type": "bool",
                 "value": true
             },
             "spawngliesedreadnaught": {
-                "text": "Spawn Gliese Dreadnaught",
+                "text": "GLIESE FLEET | Dreadnaught",
                 "type": "bool",
                 "value": true
             },
             "spawngliesefighter": {
-                "text": "Spawn Gliese Fighter",
+                "text": "GLIESE FLEET | Fighter",
                 "type": "bool",
                 "value": true
             },
             "spawngliesebomber": {
-                "text": "Spawn Gliese Bomber",
+                "text": "GLIESE FLEET | Bomber",
                 "type": "bool",
                 "value": true
             },
             "spawneridanigunboat": {
-                "text": "Spawn Eridani Gunboat",
+                "text": "ERIDANI FLEET | Gunboat",
                 "type": "bool",
                 "value": true
             },
             "spawneridanidestroyer": {
-                "text": "Spawn Eridani Destroyer",
+                "text": "ERIDANI FLEET | Destroyer",
                 "type": "bool",
                 "value": true
             },
             "spawneridanifighter": {
-                "text": "Spawn Eridani Fighter",
+                "text": "ERIDANI FLEET | Fighter",
                 "type": "bool",
                 "value": true
             },
             "spawneridanibomber": {
-                "text": "Spawn Eridani Bomber",
+                "text": "ERIDANI FLEET | Bomber",
                 "type": "bool",
                 "value": true
             },
             "showhitboxes": {
-                "text": "Debug: Hitboxes",
+                "text": "DIAGNOSTICS | Hitboxes",
                 "type": "bool",
                 "value": false
             },
             "showhpbars": {
-                "text": "Debug: HP Bars",
+                "text": "DIAGNOSTICS | HP Bars",
                 "type": "bool",
                 "value": false
             },
             "showshipmovement": {
-                "text": "Debug: Ship Movement",
+                "text": "DIAGNOSTICS | Ship Movement",
                 "type": "bool",
                 "value": false
             },
             "showshipstate": {
-                "text": "Debug: Ship State",
+                "text": "DIAGNOSTICS | Ship State",
                 "type": "bool",
                 "value": false
             },
             "showprojectiletargets": {
-                "text": "Debug: Projectile Targets",
+                "text": "DIAGNOSTICS | Projectile Targets",
                 "type": "bool",
                 "value": false
             },
             "showfps": {
-                "text": "Debug: FPS",
+                "text": "DIAGNOSTICS | FPS",
                 "type": "bool",
                 "value": false
             }

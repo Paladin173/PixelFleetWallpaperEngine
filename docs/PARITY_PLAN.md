@@ -10,7 +10,8 @@ wallpaper runtime features and have no desktop equivalent.
 - [x] Brightness, capital ships, fighters, bombers, debris, and asteroid count
 - [x] Survival, Galactic War, Free for All, and No Ships modes
 - [x] Independent stars, space dust, planets, and asteroid-belt controls
-- [x] Score visibility, top/bottom orientation, horizontal offset, and vertical offset
+- [x] Camera zoom for wider or closer battlefield views
+- [x] Score visibility, placement, font size, color, opacity, and optional background
 - [x] All twelve individual ship-class spawn toggles
 - [x] Double-click destruction, slow-motion explosions, and automatic faction balancing
 - [x] Hitbox, HP-bar, movement, state, projectile-target, and FPS debug overlays
@@ -33,6 +34,7 @@ wallpaper runtime features and have no desktop equivalent.
 - [x] Automated desktop, portrait, resize, pause, FPS, and ultrawide checks
 - [x] Original settings mutate owning runtime behavior, not only manifest values
 - [x] Score position and persistence verified through the rendered application
+- [x] Camera zoom, score appearance, and star hiding verified through the rendered application
 - [x] Maximum 70-ship battle instantiated by an automated browser test
 - [ ] Live Wallpaper Engine import and performance acceptance
 - [ ] Side-by-side long-duration comparison with the Android application

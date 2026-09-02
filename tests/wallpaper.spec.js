@@ -16,19 +16,28 @@ test("Wallpaper Engine manifest and original assets are complete", async () => {
     expect(project.general.properties.capitalships.value).toBe(6);
     expect(project.general.properties.fighters.value).toBe(12);
     expect(project.general.properties.bombers.value).toBe(6);
-    expect(Object.keys(project.general.properties)).toHaveLength(38);
+    expect(Object.keys(project.general.properties)).toHaveLength(44);
     const originalSettings = [
-        "simulationmode", "capitalships", "fighters", "bombers", "asteroids", "stars", "spacedust", "planets",
+        "zoom", "simulationmode", "capitalships", "fighters", "bombers", "asteroids", "stars", "spacedust", "planets",
         "asteroidbelt", "debris", "slowmotion", "autobalance", "interaction", "brightness", "showscore",
-        "scoreorientation", "scorehorizontaloffset", "scoreverticaloffset", "resetstats", "spawnearthcruiser",
+        "scoreorientation", "scorehorizontaloffset", "scoreverticaloffset", "scoresize", "scoreopacity", "scorecolor",
+        "scorebackground", "scorebackgroundopacity", "resetstats", "spawnearthcruiser",
         "spawnearthmissilefrigate", "spawnearthfighter", "spawnearthbomber", "spawngliesecorvette",
         "spawngliesedreadnaught", "spawngliesefighter", "spawngliesebomber", "spawneridanigunboat",
         "spawneridanidestroyer", "spawneridanifighter", "spawneridanibomber", "showhitboxes", "showhpbars",
         "showshipmovement", "showshipstate", "showprojectiletargets", "showfps"
     ];
     for (const key of originalSettings) expect(project.general.properties[key]).toBeDefined();
-    expect(project.general.properties.scorehorizontaloffset).toMatchObject({ type: "slider", min: -120, max: 120, value: 0 });
-    expect(project.general.properties.scoreverticaloffset).toMatchObject({ type: "slider", min: 0, max: 240, value: 0 });
+    expect(project.general.properties.scorehorizontaloffset).toMatchObject({ type: "slider", min: -1000, max: 1000, value: 0 });
+    expect(project.general.properties.scoreverticaloffset).toMatchObject({ type: "slider", min: 0, max: 1000, value: 0 });
+    expect(project.general.properties.zoom).toMatchObject({ text: "DISPLAY | Camera Zoom Out", type: "slider", min: 1, max: 5, step: 0.1, value: 1 });
+    expect(Object.keys(project.general.properties).slice(0, 3)).toEqual(["renderquality", "zoom", "brightness"]);
+    expect(project.general.properties.stars.options).toContainEqual({ label: "Never", value: "never" });
+    expect(project.general.properties.stars.text).toBe("ENVIRONMENT | Stars");
+    expect(project.general.properties.planets.text).toBe("ENVIRONMENT | Planets");
+    expect(project.general.properties.spawnearthcruiser.text).toBe("EARTH FLEET | Cruiser");
+    expect(project.general.properties.spawngliesecorvette.text).toBe("GLIESE FLEET | Corvette");
+    expect(project.general.properties.spawneridanigunboat.text).toBe("ERIDANI FLEET | Gunboat");
     for (const filename of ["static_bg.png", "cruiser_1_4x.png", "gliese_dreadnaught_4x.png", "epsilon_eridani_gunboat.png"]) {
         expect(fs.statSync(path.join(__dirname, "..", "assets", filename)).size).toBeGreaterThan(0);
     }
@@ -198,6 +207,58 @@ test("auto quality stays inside the ultrawide pixel budget", async ({ page }) =>
     }));
     expect(buffer.width * buffer.height).toBeLessThanOrEqual(8294400);
     expect(buffer.worldRatio).toBeCloseTo(5120 / 1440, 5);
+});
+
+test("camera zoom-out expands the wide baseline while preserving normalized ship positions", async ({ page }) => {
+    await openWallpaper(page);
+    const before = await page.evaluate(() => {
+        const app = window.pixelFleetApp;
+        const ship = app.world.ships[0];
+        return { width: app.world.width, height: app.world.height, x: ship.x / app.world.width, y: ship.y / app.world.height };
+    });
+    await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ zoom: { value: 2 } }));
+    const after = await page.evaluate(() => {
+        const app = window.pixelFleetApp;
+        const ship = app.world.ships[0];
+        return { width: app.world.width, height: app.world.height, x: ship.x / app.world.width, y: ship.y / app.world.height };
+    });
+    expect(after.width).toBeCloseTo(before.width * 2, 5);
+    expect(after.height).toBeCloseTo(before.height * 2, 5);
+    expect(after.x).toBeCloseTo(before.x, 5);
+    expect(after.y).toBeCloseTo(before.y, 5);
+});
+
+test("scoreboard appearance controls and star hiding affect rendering", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const app = window.pixelFleetApp;
+        window.wallpaperPropertyListener.applyUserProperties({
+            stars: { value: "never" }, showscore: { value: true }, scoresize: { value: 150 },
+            scoreopacity: { value: 60 }, scorecolor: { value: "0.2 0.6 1" },
+            scorebackground: { value: true }, scorebackgroundopacity: { value: 70 }
+        });
+        const calls = [];
+        const originalFillRect = app.renderer.context.fillRect.bind(app.renderer.context);
+        const originalFillText = app.renderer.context.fillText.bind(app.renderer.context);
+        app.renderer.context.fillRect = (...arguments_) => {
+            calls.push({ kind: "rect", arguments_, fillStyle: app.renderer.context.fillStyle });
+            originalFillRect(...arguments_);
+        };
+        app.renderer.context.fillText = (...arguments_) => {
+            calls.push({ kind: "text", arguments_, fillStyle: app.renderer.context.fillStyle, font: app.renderer.context.font });
+            originalFillText(...arguments_);
+        };
+        app.renderer.draw(app.world, app.settings, 60);
+        return {
+            stars: app.world.background.stars,
+            text: calls.find((call) => call.kind === "text" && call.arguments_[0].startsWith("Earth:")),
+            backdrop: calls.find((call) => call.kind === "rect" && call.fillStyle === "rgba(0, 0, 0, 0.7)")
+        };
+    });
+    expect(result.stars).toBe(false);
+    expect(result.text.fillStyle).toBe("rgba(51, 153, 255, 0.6)");
+    expect(result.text.font).toContain("23px monospace");
+    expect(result.backdrop).toBeDefined();
 });
 
 test("portrait and live resize preserve aspect ratio and ship placement", async ({ page }) => {

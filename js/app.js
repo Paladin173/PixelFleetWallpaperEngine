@@ -53,15 +53,16 @@
             const width = Math.max(1, window.innerWidth);
             const height = Math.max(1, window.innerHeight);
             this.renderer.resize(width, height);
-            const worldHeight = 900;
+            const zoom = Math.max(1, Math.min(5, Number(this.settings.zoom) || 1));
+            const worldHeight = 2250 * zoom;
             this.world.setViewport(worldHeight * width / height, worldHeight);
         }
 
         applySettings(settings) {
             this.settings = { ...settings };
             this.renderer.setQuality(settings.renderQuality);
-            this.renderer.resize(window.innerWidth, window.innerHeight);
             this.world.applySettings(settings);
+            this.resize();
         }
 
         setFpsLimit(value) {

@@ -222,23 +222,44 @@
         drawUi(context, world, settings, fps) {
             const pixelScale = Math.max(1, Math.min(this.scaleX, this.scaleY));
             context.save();
-            context.fillStyle = "#ffffff";
             context.textBaseline = "middle";
-            context.font = `${Math.round(15 * pixelScale)}px monospace`;
             if (settings.showScore && settings.simulationMode !== "freeforall") {
                 const scores = world.stats.factions;
                 const text = `Earth: ${scores.earth.score}  Gliese: ${scores.gliese.score}  Eridani: ${scores.eridani.score}`;
+                const fontSize = Math.round(15 * pixelScale * Math.max(0.5, Math.min(2.5, settings.scoreSize / 100)));
                 const horizontal = this.canvas.width / 2 + settings.scoreHorizontalOffset * pixelScale;
                 const edge = 16 * pixelScale + settings.scoreVerticalOffset * pixelScale;
                 const vertical = settings.scoreOrientation === "top" ? edge : this.canvas.height - edge;
+                const opacity = Math.max(0.1, Math.min(1, settings.scoreOpacity / 100));
+                const color = this.wallpaperColor(settings.scoreColor, opacity);
+                context.font = `${fontSize}px monospace`;
                 context.textAlign = "center";
+                if (settings.scoreBackground) {
+                    const metrics = context.measureText(text);
+                    const paddingX = 10 * pixelScale;
+                    const paddingY = 6 * pixelScale;
+                    const backgroundOpacity = Math.max(0.1, Math.min(1, settings.scoreBackgroundOpacity / 100));
+                    context.fillStyle = `rgba(0, 0, 0, ${backgroundOpacity})`;
+                    context.fillRect(horizontal - metrics.width / 2 - paddingX, vertical - fontSize / 2 - paddingY, metrics.width + paddingX * 2, fontSize + paddingY * 2);
+                }
+                context.fillStyle = color;
                 context.fillText(text, horizontal, vertical);
             }
             if (settings.showFps) {
+                context.fillStyle = "#ffffff";
+                context.font = `${Math.round(15 * pixelScale)}px monospace`;
                 context.textAlign = "right";
                 context.fillText(`${Math.round(fps)} FPS`, this.canvas.width - 8 * pixelScale, 14 * pixelScale);
             }
             context.restore();
+        }
+
+        wallpaperColor(value, alpha) {
+            const components = String(value || "1 1 1").trim().split(/\s+/).map(Number);
+            const red = Math.round(Math.max(0, Math.min(1, components[0] ?? 1)) * 255);
+            const green = Math.round(Math.max(0, Math.min(1, components[1] ?? 1)) * 255);
+            const blue = Math.round(Math.max(0, Math.min(1, components[2] ?? 1)) * 255);
+            return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
         }
 
         drawSprite(context, name, x, y, angle, targetSize, alpha, additive) {

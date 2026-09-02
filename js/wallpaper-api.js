@@ -3,6 +3,7 @@
 
     const defaults = {
         renderQuality: "auto",
+        zoom: 1,
         simulationMode: "survival",
         capitalShips: 6,
         fighters: 12,
@@ -21,6 +22,11 @@
         scoreOrientation: "bottom",
         scoreHorizontalOffset: 0,
         scoreVerticalOffset: 0,
+        scoreSize: 100,
+        scoreOpacity: 100,
+        scoreColor: "1 1 1",
+        scoreBackground: false,
+        scoreBackgroundOpacity: 55,
         resetStats: false,
         spawnEarthCruiser: true,
         spawnEarthMissileFrigate: true,
@@ -68,6 +74,7 @@
         applyUserProperties(properties) {
             const settings = window.pixelFleetSettings;
             if (properties.renderquality !== undefined) settings.renderQuality = String(value(properties.renderquality, defaults.renderQuality));
+            if (properties.zoom !== undefined) settings.zoom = numberValue(properties.zoom, defaults.zoom);
             if (properties.simulationmode !== undefined) settings.simulationMode = String(value(properties.simulationmode, defaults.simulationMode));
             if (properties.capitalships !== undefined) settings.capitalShips = numberValue(properties.capitalships, defaults.capitalShips);
             if (properties.fighters !== undefined) settings.fighters = numberValue(properties.fighters, defaults.fighters);
@@ -86,6 +93,11 @@
             if (properties.scoreorientation !== undefined) settings.scoreOrientation = String(value(properties.scoreorientation, defaults.scoreOrientation));
             if (properties.scorehorizontaloffset !== undefined) settings.scoreHorizontalOffset = numberValue(properties.scorehorizontaloffset, defaults.scoreHorizontalOffset);
             if (properties.scoreverticaloffset !== undefined) settings.scoreVerticalOffset = numberValue(properties.scoreverticaloffset, defaults.scoreVerticalOffset);
+            if (properties.scoresize !== undefined) settings.scoreSize = numberValue(properties.scoresize, defaults.scoreSize);
+            if (properties.scoreopacity !== undefined) settings.scoreOpacity = numberValue(properties.scoreopacity, defaults.scoreOpacity);
+            if (properties.scorecolor !== undefined) settings.scoreColor = String(value(properties.scorecolor, defaults.scoreColor));
+            if (properties.scorebackground !== undefined) settings.scoreBackground = booleanValue(properties.scorebackground, defaults.scoreBackground);
+            if (properties.scorebackgroundopacity !== undefined) settings.scoreBackgroundOpacity = numberValue(properties.scorebackgroundopacity, defaults.scoreBackgroundOpacity);
             if (properties.resetstats !== undefined) {
                 const shouldReset = booleanValue(properties.resetstats, defaults.resetStats);
                 if (shouldReset && !settings.resetStats && window.pixelFleetApp) window.pixelFleetApp.clearStats();
