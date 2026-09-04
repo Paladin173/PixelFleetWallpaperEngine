@@ -27,7 +27,7 @@ wallpaper runtime features and have no desktop equivalent.
 - [x] Damaging free asteroids and a separately controlled decorative asteroid belt
 - [x] Winner scoring, survivor warp-out, battle restart, and continuous modes
 - [x] Persistent faction scores and lifetime combat statistics
-- [x] Score-weighted automatic faction balancing
+- [x] APK-derived score-share and rank-transfer automatic faction balancing
 
 ## Acceptance Gates
 

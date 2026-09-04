@@ -34,6 +34,10 @@ limits; independent stars, space dust, planets, and asteroid-belt controls; all
 twelve ship-class spawn toggles; brightness, debris, slow motion, and automatic
 faction balancing; and all six original debug overlays.
 
+Auto-balance follows the APK's persistent score system. Once cumulative faction
+score reaches ten, lower-scoring factions receive a larger share of the next
+battle's initial fleet while ship damage and durability remain fixed.
+
 Camera zoom-out ranges from 1x to 5x. The new 1x baseline already shows 2.5 times
 as much battlefield as the original view, while higher values reveal progressively
 more space. Set Stars to Never to hide the starfield independently of the other

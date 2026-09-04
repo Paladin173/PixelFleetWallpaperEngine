@@ -124,6 +124,32 @@ test("factions start equidistant with balanced durability and varied battle seed
     expect(state.secondLayout).not.toEqual(state.firstLayout);
 });
 
+test("auto-balance uses the original APK score-weighted spawn probabilities", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        world.settings.autoBalance = true;
+        world.stats.factions.earth.score = 11;
+        world.stats.factions.gliese.score = 17;
+        world.stats.factions.eridani.score = 16;
+        const weights = world.factionSpawnWeights();
+        world.stats.factions.earth.score = 3;
+        world.stats.factions.gliese.score = 3;
+        world.stats.factions.eridani.score = 3;
+        const beforeThreshold = [0, 1, 2].map((index) => world.chooseFaction("fighter", index));
+        world.stats.factions.earth.score = 11;
+        world.stats.factions.gliese.score = 17;
+        world.stats.factions.eridani.score = 17;
+        const tiedWeights = world.factionSpawnWeights();
+        const continuousSelection = [0, 1, 2].map((index) => world.chooseFaction("fighter", index, false));
+        return { weights, beforeThreshold, tiedWeights, continuousSelection };
+    });
+    expect(result.weights).toEqual({ earth: 49, gliese: 22, eridani: 29 });
+    expect(result.beforeThreshold).toEqual(["earth", "gliese", "eridani"]);
+    expect(result.tiedWeights).toEqual({ earth: 52, gliese: 28, eridani: 21 });
+    expect(result.continuousSelection).toEqual(["earth", "gliese", "eridani"]);
+});
+
 test("ships and projectiles cross edges seamlessly and warp without the boxed bitmap", async ({ page }) => {
     await openWallpaper(page);
     const result = await page.evaluate(() => {

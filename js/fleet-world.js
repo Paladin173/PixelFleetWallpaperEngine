@@ -193,14 +193,39 @@
             }
         }
 
-        chooseFaction(type, index = 0) {
+        chooseFaction(type, index = 0, useAutoBalance = true) {
             const enabled = FACTIONS.filter((faction) => this.definitionsFor(type, faction).length > 0);
             if (!enabled.length) return null;
             const totalScore = FACTIONS.reduce((total, faction) => total + this.stats.factions[faction].score, 0);
-            if (!this.settings.autoBalance || totalScore < 10) return enabled[index % enabled.length];
-            const highestScore = Math.max(...enabled.map((faction) => this.stats.factions[faction].score));
-            const weighted = enabled.flatMap((faction) => Array(Math.max(1, highestScore - this.stats.factions[faction].score + 1)).fill(faction));
-            return this.random.pick(weighted);
+            if (!useAutoBalance || !this.settings.autoBalance || totalScore < 10) return enabled[index % enabled.length];
+            const weights = this.factionSpawnWeights();
+            const totalWeight = enabled.reduce((total, faction) => total + Math.max(0, weights[faction]), 0);
+            if (!totalWeight) return enabled[index % enabled.length];
+            let selection = this.random.next() * totalWeight;
+            for (const faction of enabled) {
+                selection -= Math.max(0, weights[faction]);
+                if (selection < 0) return faction;
+            }
+            return enabled[enabled.length - 1];
+        }
+
+        factionSpawnWeights() {
+            const totalScore = FACTIONS.reduce((total, faction) => total + this.stats.factions[faction].score, 0);
+            if (!totalScore) return Object.fromEntries(FACTIONS.map((faction) => [faction, 1]));
+            const weights = Object.fromEntries(FACTIONS.map((faction) => [
+                faction,
+                Math.floor((100 - Math.floor(this.stats.factions[faction].score * 100 / totalScore)) / 2)
+            ]));
+            const ranked = ["earth", "eridani", "gliese"].sort((left, right) => this.stats.factions[right].score - this.stats.factions[left].score);
+            const [leader, second, trailer] = ranked;
+            const difference = weights[trailer] - weights[leader];
+            if (difference >= 0) {
+                const transfer = difference * 2;
+                weights[trailer] += transfer;
+                weights[leader] -= Math.floor(transfer * 0.75);
+                weights[second] -= Math.floor(transfer * 0.25);
+            }
+            return weights;
         }
 
         definitionsFor(type, faction) {
@@ -462,7 +487,7 @@
             for (const type of Object.keys(expected)) {
                 const active = this.ships.filter((ship) => ship.type === type && ship.state !== "dead").length;
                 if (active < expected[type] && this.random.next() < 0.018) {
-                    const faction = this.chooseFaction(type, active);
+                    const faction = this.chooseFaction(type, active, false);
                     if (faction) this.spawnShip(type, faction);
                 }
             }
