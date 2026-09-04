@@ -96,6 +96,106 @@ test("default scene renders the original starfield and all fleet classes", async
     expect(state.loadedAssets).toBe(44);
 });
 
+test("factions start equidistant with balanced durability and varied battle seeds", async ({ page }) => {
+    await openWallpaper(page);
+    const state = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        const factions = ["earth", "gliese", "eridani"];
+        const centers = Object.fromEntries(factions.map((faction) => {
+            const ships = world.ships.filter((ship) => ship.faction === faction);
+            return [faction, {
+                x: ships.reduce((total, ship) => total + ship.x, 0) / ships.length,
+                y: ships.reduce((total, ship) => total + ship.y, 0) / ships.length
+            }];
+        }));
+        const distances = [["earth", "gliese"], ["gliese", "eridani"], ["eridani", "earth"]].map(([left, right]) =>
+            Math.hypot(centers[left].x - centers[right].x, centers[left].y - centers[right].y));
+        const earthHealth = Object.fromEntries(["capital", "fighter", "bomber"].map((type) => [
+            type,
+            [...new Set(world.ships.filter((ship) => ship.faction === "earth" && ship.type === type).map((ship) => ship.maxHealth))]
+        ]));
+        const firstLayout = world.ships.map((ship) => [ship.sprite, ship.x, ship.y]);
+        world.restart();
+        const secondLayout = world.ships.map((ship) => [ship.sprite, ship.x, ship.y]);
+        return { distances, earthHealth, firstLayout, secondLayout };
+    });
+    expect(Math.max(...state.distances) / Math.min(...state.distances)).toBeLessThan(1.25);
+    expect(state.earthHealth).toEqual({ capital: [540], fighter: [50], bomber: [100] });
+    expect(state.secondLayout).not.toEqual(state.firstLayout);
+});
+
+test("ships and projectiles cross edges seamlessly and warp without the boxed bitmap", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const app = window.pixelFleetApp;
+        const world = app.world;
+        const renderer = app.renderer;
+        const ship = world.ships[0];
+        const target = world.ships.find((candidate) => candidate.faction !== ship.faction);
+        ship.x = world.width - 5;
+        ship.y = world.height / 2;
+        target.x = 5;
+        target.y = world.height / 2;
+        const decoy = { ...target, id: -1, x: world.width - 200 };
+        world.ships = [ship, target, decoy];
+        const selectedAcrossEdge = world.findTarget(ship).id === target.id;
+        const shortestOffset = world.wrappedOffset(ship.x, target.x, world.width);
+        ship.sprite = "gliese_corvette.png";
+        ship.faction = "gliese";
+        world.fire(ship, target);
+        const beamTargetX = world.effects.find((effect) => effect.kind === "beam").targetX;
+
+        world.projectiles = [{
+            x: world.width - 1, y: 20, vx: 120, vy: 0, angle: 0, targetId: 0,
+            faction: ship.faction, damage: 1, life: 2, missile: false, weapon: "laser", color: "#fff"
+        }];
+        world.updateProjectiles(1 / 30);
+        const projectileX = world.projectiles[0].x;
+
+        ship.state = "active";
+        ship.health = ship.maxHealth;
+        ship.shield = 0;
+        ship.x = world.width - 4;
+        ship.y = 30;
+        world.asteroids = [{ x: 2 / world.width, y: 30 / world.height, size: 8, angle: 0, spin: 0, speedX: 0, speedY: 0, hitTimer: 0 }];
+        world.updateBackground(1 / 60);
+        const asteroidHitAcrossEdge = ship.health < ship.maxHealth;
+        const destroyedAcrossEdge = world.destroyAt(3, 30, 20);
+
+        const positions = [];
+        const spriteNames = [];
+        let warpFlares = 0;
+        renderer.drawWarp(renderer.context, world.width / 2, world.height / 2, 0, ship.radius, 1);
+        const originalDrawShipAt = renderer.drawShipAt;
+        const originalDrawSprite = renderer.drawSprite;
+        const originalDrawWarp = renderer.drawWarp;
+        renderer.drawShipAt = (_context, _ship, x, y) => positions.push([x, y]);
+        ship.state = "active";
+        ship.x = 1;
+        renderer.drawShip(renderer.context, ship, world);
+        target.state = "active";
+        renderer.drawShip(renderer.context, target, world);
+        renderer.drawShipAt = originalDrawShipAt;
+        renderer.drawSprite = (_context, name) => spriteNames.push(name);
+        renderer.drawWarp = () => { warpFlares += 1; };
+        ship.state = "warping";
+        renderer.drawShip(renderer.context, ship, world);
+        renderer.drawSprite = originalDrawSprite;
+        renderer.drawWarp = originalDrawWarp;
+        return { selectedAcrossEdge, shortestOffset, beamTargetX, targetX: target.x, worldWidth: world.width, projectileX, asteroidHitAcrossEdge, destroyedAcrossEdge, positions, spriteNames, warpFlares };
+    });
+    expect(result.selectedAcrossEdge).toBe(true);
+    expect(result.shortestOffset).toBe(10);
+    expect(result.beamTargetX).toBe(result.worldWidth + result.targetX);
+    expect(result.projectileX).toBe(3);
+    expect(result.asteroidHitAcrossEdge).toBe(true);
+    expect(result.destroyedAcrossEdge).toBe(true);
+    expect(result.positions.some(([x]) => x > 1)).toBe(true);
+    expect(result.positions.some(([x]) => x === result.beamTargetX)).toBe(true);
+    expect(result.spriteNames).not.toContain("warp.png");
+    expect(result.warpFlares).toBe(1);
+});
+
 test("fleet simulation moves, targets, and fires", async ({ page }) => {
     await openWallpaper(page);
     const initial = await page.evaluate(() => ({
@@ -387,12 +487,18 @@ test("beams, ion fire, subsystem damage, and asteroid collisions are functional"
         const target = world.ships.find((ship) => ship.faction !== shooter.faction);
         shooter.sprite = "gliese_corvette.png";
         shooter.faction = "gliese";
+        const durabilityBeforeBeam = target.health + target.shield;
         world.fire(shooter, target);
         const beam = world.effects.some((effect) => effect.kind === "beam");
+        const beamDamage = durabilityBeforeBeam - target.health - target.shield;
         shooter.sprite = "epsilon_eridani_gunboat.png";
         shooter.faction = "eridani";
         world.fire(shooter, target);
-        const ion = world.projectiles.some((projectile) => projectile.weapon === "ion");
+        const ionDamage = world.projectiles.find((projectile) => projectile.weapon === "ion").damage;
+        shooter.sprite = "earth_missile_cruiser_4x.png";
+        shooter.faction = "earth";
+        world.fire(shooter, target);
+        const capitalMissileDamage = world.projectiles.find((projectile) => projectile.weapon === "missile").damage;
 
         target.shield = 0;
         target.health = 1000;
@@ -413,9 +519,9 @@ test("beams, ion fire, subsystem damage, and asteroid collisions are functional"
         asteroid.hitTimer = 0;
         const durabilityBefore = target.health + target.shield;
         world.updateBackground(1 / 60);
-        return { beam, ion, subsystemDestroyed, asteroidDamage: target.health + target.shield < durabilityBefore };
+        return { beam, beamDamage, ionDamage, capitalMissileDamage, subsystemDestroyed, asteroidDamage: target.health + target.shield < durabilityBefore };
     });
-    expect(result).toEqual({ beam: true, ion: true, subsystemDestroyed: true, asteroidDamage: true });
+    expect(result).toEqual({ beam: true, beamDamage: 12, ionDamage: 22, capitalMissileDamage: 24, subsystemDestroyed: true, asteroidDamage: true });
 });
 
 test("Free for All targets same-faction ships and suppresses the score overlay", async ({ page }) => {

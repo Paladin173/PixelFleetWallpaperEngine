@@ -68,7 +68,7 @@
             this.drawSpaceDust(context, world);
             for (const asteroid of world.asteroids) this.drawSprite(context, asteroid.sprite, asteroid.x * world.width, asteroid.y * world.height, asteroid.angle, asteroid.size, 0.55);
             for (const effect of world.effects.filter((item) => item.kind === "debris")) this.drawSprite(context, effect.sprite, effect.x, effect.y, effect.angle, effect.size, Math.max(0, 1 - effect.age / effect.life));
-            for (const ship of world.ships) this.drawShip(context, ship);
+            for (const ship of world.ships) this.drawShip(context, ship, world);
             this.drawProjectiles(context, world.projectiles);
             for (const effect of world.effects.filter((item) => item.kind !== "debris")) this.drawEffect(context, effect);
             this.drawDebug(context, world, settings);
@@ -99,16 +99,48 @@
             context.restore();
         }
 
-        drawShip(context, ship) {
+        drawShip(context, ship, world) {
+            const horizontalOffsets = [0];
+            const verticalOffsets = [0];
+            const margin = ship.radius * 5;
+            if (ship.state === "active" && ship.x < margin) horizontalOffsets.push(world.width);
+            if (ship.state === "active" && ship.x > world.width - margin) horizontalOffsets.push(-world.width);
+            if (ship.state === "active" && ship.y < margin) verticalOffsets.push(world.height);
+            if (ship.state === "active" && ship.y > world.height - margin) verticalOffsets.push(-world.height);
+            for (const offsetX of horizontalOffsets) {
+                for (const offsetY of verticalOffsets) this.drawShipAt(context, ship, ship.x + offsetX, ship.y + offsetY);
+            }
+        }
+
+        drawShipAt(context, ship, x, y) {
             const pulse = 0.72 + Math.sin(ship.enginePulse) * 0.2;
-            if (ship.state === "warping") this.drawSprite(context, "warp.png", ship.x, ship.y, ship.angle, ship.radius * 4.5, pulse, true);
-            if (ship.state === "active" || ship.state === "warping") this.drawSprite(context, ship.engine, ship.x, ship.y, ship.angle + Math.PI / 2, null, pulse);
+            if (ship.state === "warping") this.drawWarp(context, x, y, ship.angle, ship.radius, pulse);
+            if (ship.state === "active" || ship.state === "warping") this.drawSprite(context, ship.engine, x, y, ship.angle + Math.PI / 2, null, pulse);
             const alpha = ship.state === "exploding" ? Math.max(0, 1 - ship.deathTimer / 0.9) : 1;
-            this.drawSprite(context, ship.sprite, ship.x, ship.y, ship.angle + Math.PI / 2, null, alpha);
+            this.drawSprite(context, ship.sprite, x, y, ship.angle + Math.PI / 2, null, alpha);
             if (ship.shield < ship.maxShield && ship.shield > 0) {
                 const shieldName = ship.type === "capital" ? "shield_cruiser_class_4x.png" : ship.type === "bomber" ? "shield_bomber_class.png" : "shield_fighter_class.png";
-                this.drawSprite(context, shieldName, ship.x, ship.y, ship.angle + Math.PI / 2, ship.radius * 2.8, 0.12 + 0.2 * (ship.shield / ship.maxShield), true);
+                this.drawSprite(context, shieldName, x, y, ship.angle + Math.PI / 2, ship.radius * 2.8, 0.12 + 0.2 * (ship.shield / ship.maxShield), true);
             }
+        }
+
+        drawWarp(context, x, y, angle, radius, alpha) {
+            const size = radius * 2.25;
+            const gradient = context.createRadialGradient(0, 0, 0, 0, 0, size);
+            gradient.addColorStop(0, "rgba(225,245,255,0.9)");
+            gradient.addColorStop(0.3, "rgba(100,190,255,0.55)");
+            gradient.addColorStop(1, "rgba(40,120,255,0)");
+            context.save();
+            context.globalCompositeOperation = "lighter";
+            context.globalAlpha = alpha;
+            context.translate(x, y);
+            context.rotate(angle);
+            context.scale(1.8, 0.45);
+            context.fillStyle = gradient;
+            context.beginPath();
+            context.arc(0, 0, size, 0, Math.PI * 2);
+            context.fill();
+            context.restore();
         }
 
         drawProjectiles(context, projectiles) {

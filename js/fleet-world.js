@@ -5,8 +5,8 @@
     const FACTIONS = ["earth", "gliese", "eridani"];
     const CAPITALS = {
         earth: [
-            ["cruiser_1_4x.png", "cruiser_1_engine_4x.png", 700, 110, 0.82],
-            ["earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 700, 92, 1.35]
+            ["cruiser_1_4x.png", "cruiser_1_engine_4x.png", 540, 110, 0.82],
+            ["earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 540, 92, 1.35]
         ],
         gliese: [
             ["gliese_dreadnaught_4x.png", "gliese_dreadnaught_engine_4x.png", 500, 96, 0.68],
@@ -18,12 +18,12 @@
         ]
     };
     const FIGHTERS = {
-        earth: ["earth_fighter.png", "earth_fighter_engine.png", 55, 240, 0.48],
+        earth: ["earth_fighter.png", "earth_fighter_engine.png", 50, 240, 0.48],
         gliese: ["gliese_fighter.png", "gliese_fighter_engine.png", 50, 210, 0.5],
         eridani: ["eridani_fighter.png", "eridani_fighter_engine.png", 50, 190, 0.52]
     };
     const BOMBERS = {
-        earth: ["earth_bomber.png", "earth_bomber_engine.png", 110, 155, 1.25],
+        earth: ["earth_bomber.png", "earth_bomber_engine.png", 100, 155, 1.25],
         gliese: ["gliese_bomber.png", "gliese_bomber_engine.png", 100, 150, 1.2],
         eridani: ["eridani_bomber.png", "eridani_bomber_engine.png", 100, 145, 1.18]
     };
@@ -122,7 +122,7 @@
         }
 
         restart() {
-            this.random = new Random(0x50465831);
+            this.random = new Random((0x50465831 + Math.imul(this.battleNumber, 0x9e3779b9)) >>> 0);
             this.ships.length = 0;
             this.projectiles.length = 0;
             this.effects.length = 0;
@@ -212,13 +212,15 @@
             const definitions = this.definitionsFor(type, faction);
             if (!definitions.length) return false;
             const definition = this.random.pick(definitions);
-            const lanes = { earth: 0.17, gliese: 0.5, eridani: 0.83 };
-            const side = faction === "earth" ? 1 : faction === "eridani" ? -1 : (this.random.next() > 0.5 ? 1 : -1);
-            const x = lanes[faction] * this.width + this.random.range(-this.width * 0.08, this.width * 0.08);
-            const y = this.random.range(this.height * 0.2, this.height * 0.8);
+            const originAngles = { earth: Math.PI * 7 / 6, gliese: Math.PI * 11 / 6, eridani: Math.PI / 2 };
+            const originAngle = originAngles[faction];
+            const radius = Math.min(this.width, this.height) * 0.32;
+            const spread = Math.min(this.width, this.height) * 0.08;
+            const x = this.width / 2 + Math.cos(originAngle) * radius + this.random.range(-spread, spread);
+            const y = this.height / 2 + Math.sin(originAngle) * radius + this.random.range(-spread, spread);
             this.ships.push({
                 id: this.nextId++, type, faction, sprite: definition[0], engine: definition[1],
-                x, y, angle: side > 0 ? 0 : Math.PI, speed: definition[3], maxSpeed: definition[3],
+                x, y, angle: originAngle + Math.PI, speed: definition[3], maxSpeed: definition[3],
                 health: definition[2], maxHealth: definition[2], shield: definition[2] * 0.3,
                 maxShield: definition[2] * 0.3, radius: type === "capital" ? 34 : type === "bomber" ? 17 : 11,
                 fireDelay: definition[4], fireTimer: this.random.range(0, definition[4]), targetId: 0,
@@ -270,8 +272,8 @@
                 ship.retargetTimer = this.random.range(0.25, 0.7);
             }
             if (!target) return;
-            const offsetX = target.x - ship.x;
-            const offsetY = target.y - ship.y;
+            const offsetX = this.wrappedOffset(ship.x, target.x, this.width);
+            const offsetY = this.wrappedOffset(ship.y, target.y, this.height);
             const distance = Math.hypot(offsetX, offsetY) || 1;
             const desired = Math.atan2(offsetY, offsetX);
             ship.aiState = ship.health / ship.maxHealth < 0.22 ? "retreating" : "engaging";
@@ -292,7 +294,7 @@
             if (ship.aiState === "engaging" && ship.systems.weapons > 0 && ship.fireTimer <= 0 && distance < (ship.type === "capital" ? 520 : 340) && Math.abs(angleDelta) < 0.55) {
                 this.fire(ship, target);
                 const weaponFactor = 2 - ship.systems.weapons / 100;
-                ship.fireTimer = (ship.type === "fighter" ? 0.48 : ship.type === "bomber" ? 1.2 : 0.72) * weaponFactor * this.random.range(0.8, 1.25);
+                ship.fireTimer = ship.fireDelay * weaponFactor * this.random.range(0.8, 1.25);
             }
             ship.enginePulse += delta * 8;
         }
@@ -304,7 +306,9 @@
             for (const candidate of this.ships) {
                 if (candidate === ship || candidate.state !== "active") continue;
                 if (!freeForAll && candidate.faction === ship.faction) continue;
-                const distance = (candidate.x - ship.x) ** 2 + (candidate.y - ship.y) ** 2;
+                const offsetX = this.wrappedOffset(ship.x, candidate.x, this.width);
+                const offsetY = this.wrappedOffset(ship.y, candidate.y, this.height);
+                const distance = offsetX ** 2 + offsetY ** 2;
                 if (distance < closestDistance) {
                     closest = candidate;
                     closestDistance = distance;
@@ -322,9 +326,14 @@
             const color = weapon === "ion" ? "#35a8ff" : ship.faction === "earth" ? "#76d7ff" : ship.faction === "gliese" ? "#ff6659" : "#7dffad";
             this.stats.factions[ship.faction].projectilesSpawned += 1;
             if (weapon === "beam") {
-                this.damageShip(target, 14, ship.faction);
+                this.damageShip(target, 12, ship.faction);
                 this.stats.factions[ship.faction].projectilesHit += 1;
-                this.effects.push({ kind: "beam", x: ship.x, y: ship.y, targetX: target.x, targetY: target.y, age: 0, life: 0.18, size: 3, color });
+                this.effects.push({
+                    kind: "beam", x: ship.x, y: ship.y,
+                    targetX: ship.x + this.wrappedOffset(ship.x, target.x, this.width),
+                    targetY: ship.y + this.wrappedOffset(ship.y, target.y, this.height),
+                    age: 0, life: 0.18, size: 3, color
+                });
                 return;
             }
             this.projectiles.push({
@@ -335,7 +344,7 @@
                 angle: ship.angle,
                 targetId: target.id,
                 faction: ship.faction,
-                damage: missile ? 36 : ship.type === "capital" ? 18 : 8,
+                damage: missile ? (ship.type === "capital" ? 24 : 36) : weapon === "ion" ? 22 : ship.type === "capital" ? 18 : 8,
                 life: missile ? 4 : 1.8,
                 missile,
                 weapon,
@@ -349,7 +358,10 @@
                 if (projectile.missile) {
                     const target = this.ships.find((ship) => ship.id === projectile.targetId && ship.state === "active");
                     if (target) {
-                        const desired = Math.atan2(target.y - projectile.y, target.x - projectile.x);
+                        const desired = Math.atan2(
+                            this.wrappedOffset(projectile.y, target.y, this.height),
+                            this.wrappedOffset(projectile.x, target.x, this.width)
+                        );
                         let turn = ((desired - projectile.angle + Math.PI * 3) % TWO_PI) - Math.PI;
                         projectile.angle += Math.max(-2.5 * delta, Math.min(2.5 * delta, turn));
                         const speed = Math.hypot(projectile.vx, projectile.vy);
@@ -358,10 +370,13 @@
                     }
                     this.effects.push({ kind: "smoke", x: projectile.x, y: projectile.y, age: 0, life: 0.45, size: 5 });
                 }
-                projectile.x += projectile.vx * delta;
-                projectile.y += projectile.vy * delta;
+                projectile.x = ((projectile.x + projectile.vx * delta) % this.width + this.width) % this.width;
+                projectile.y = ((projectile.y + projectile.vy * delta) % this.height + this.height) % this.height;
                 const target = this.ships.find((ship) => ship.id === projectile.targetId && ship.state === "active");
-                if (target && Math.hypot(target.x - projectile.x, target.y - projectile.y) < target.radius + 5) {
+                if (target && Math.hypot(
+                    this.wrappedOffset(projectile.x, target.x, this.width),
+                    this.wrappedOffset(projectile.y, target.y, this.height)
+                ) < target.radius + 5) {
                     this.damageShip(target, projectile.damage, projectile.faction);
                     projectile.life = 0;
                     this.stats.factions[projectile.faction].projectilesHit += 1;
@@ -373,6 +388,13 @@
                 if (!active && projectile.life !== 0) this.stats.factions[projectile.faction].projectilesMissed += 1;
                 return active;
             });
+        }
+
+        wrappedOffset(from, to, size) {
+            const offset = to - from;
+            if (offset > size / 2) return offset - size;
+            if (offset < -size / 2) return offset + size;
+            return offset;
         }
 
         damageShip(ship, damage, attackingFaction = null) {
@@ -458,7 +480,10 @@
                 if (asteroid.belt || asteroid.hitTimer > 0) continue;
                 const x = asteroid.x * this.width;
                 const y = asteroid.y * this.height;
-                const ship = this.ships.find((candidate) => candidate.state === "active" && Math.hypot(candidate.x - x, candidate.y - y) < candidate.radius + asteroid.size / 2);
+                const ship = this.ships.find((candidate) => candidate.state === "active" && Math.hypot(
+                    this.wrappedOffset(x, candidate.x, this.width),
+                    this.wrappedOffset(y, candidate.y, this.height)
+                ) < candidate.radius + asteroid.size / 2);
                 if (ship) {
                     this.damageShip(ship, 7, null);
                     asteroid.hitTimer = 0.75;
@@ -524,7 +549,10 @@
             let closest = null;
             let closestDistance = radius;
             for (const ship of this.ships) {
-                const distance = Math.hypot(ship.x - x, ship.y - y);
+                const distance = Math.hypot(
+                    this.wrappedOffset(x, ship.x, this.width),
+                    this.wrappedOffset(y, ship.y, this.height)
+                );
                 if (ship.state === "active" && distance < closestDistance) {
                     closest = ship;
                     closestDistance = distance;
