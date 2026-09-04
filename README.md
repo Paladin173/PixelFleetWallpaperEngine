@@ -10,6 +10,12 @@ and subsystem damage, recharge shields, explode, warp away, and scatter debris.
 The original starfield, planets, nebula, asteroids, ship sprites, engine overlays,
 shields, weapon effects, and debris are rendered with nearest-neighbor scaling.
 
+Each of the twelve ship classes uses its APK loadout rather than a generic shot.
+Earth missile frigates launch six-missile volleys, Gliese corvettes and bombers
+carry beam batteries, and Eridani ion batteries switch to secondary lasers after
+their target's shields collapse. Class-specific shield capacities, collapse
+delays, recharge rates, and weapon-specific shield and hull damage are preserved.
+
 Battles support the original 70-ship ceiling. Winning factions earn persistent
 scores, surviving ships warp out, and a new system is generated. Lifetime spawn,
 kill, death, projectile, subsystem, shield, and warp statistics persist locally.
@@ -36,7 +42,9 @@ faction balancing; and all six original debug overlays.
 
 Auto-balance follows the APK's persistent score system. Once cumulative faction
 score reaches ten, lower-scoring factions receive a larger share of the next
-battle's initial fleet while ship damage and durability remain fixed.
+battle's initial fleet while ship damage and durability remain fixed. A measured
+desktop spawn-weight correction compensates for the reduced Canvas movement AI;
+the source-derived ship parameters are not changed.
 
 Camera zoom-out ranges from 1x to 5x. The new 1x baseline already shows 2.5 times
 as much battlefield as the original view, while higher values reveal progressively
@@ -71,4 +79,5 @@ ships, 12 fighters, 6 bombers, 30 asteroids, randomized background detail, ship
 debris, slow-motion explosions, and double-tap/double-click destruction.
 
 See [docs/PARITY_PLAN.md](docs/PARITY_PLAN.md) for the implementation matrix and
-remaining live-host acceptance gates.
+remaining live-host acceptance gates. The source-backed combat values and
+desktop adaptations are recorded in [docs/APK_COMBAT_AUDIT.md](docs/APK_COMBAT_AUDIT.md).

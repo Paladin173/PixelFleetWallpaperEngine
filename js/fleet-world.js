@@ -3,30 +3,59 @@
 
     const TWO_PI = Math.PI * 2;
     const FACTIONS = ["earth", "gliese", "eridani"];
+    const SPAWN_WEIGHT_CORRECTION = { earth: 0.25, gliese: 1, eridani: 1 };
+    const ship = (sprite, engine, hull, speed, turnRate, shield, shieldAttackThreshold, ai = {}) => ({
+        sprite, engine, hull, speed: speed * 1000, turnRate: turnRate * Math.PI / 180 * 1000,
+        shield, shieldAttackThreshold, attackRunDistance: speed * 800, ...ai
+    });
     const CAPITALS = {
         earth: [
-            ["cruiser_1_4x.png", "cruiser_1_engine_4x.png", 540, 110, 0.82],
-            ["earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 540, 92, 1.35]
+            ship("cruiser_1_4x.png", "cruiser_1_engine_4x.png", 700, 0.1, 0.025, 200, 0.5, { preferHullDamage: true, randomWeapons: true }),
+            ship("earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 700, 0.05, 0.02, 200, 0.5, { preferHullDamage: true })
         ],
         gliese: [
-            ["gliese_dreadnaught_4x.png", "gliese_dreadnaught_engine_4x.png", 500, 96, 0.68],
-            ["gliese_corvette.png", "gliese_corvette_engine.png", 500, 126, 0.55]
+            ship("gliese_dreadnaught_4x.png", "gliese_dreadnaught_engine_4x.png", 500, 0.05, 0.03, 200, -Infinity, { straightAttackPath: true, focusEngage: true }),
+            ship("gliese_corvette.png", "gliese_corvette_engine.png", 500, 0.07, 0.03, 200, -Infinity, { straightAttackPath: true, focusEngage: true })
         ],
         eridani: [
-            ["epsilon_eridani_gunboat.png", "epsilon_eridani_gunboat_engine.png", 565, 150, 0.72],
-            ["epsilon_eridani_destroyer.png", "epsilon_eridani_destroyer_engine.png", 550, 82, 0.62]
+            ship("epsilon_eridani_gunboat.png", "epsilon_eridani_gunboat_engine.png", 290, 0.1, 0.04, 270, 0.75, { keepDistance: true }),
+            ship("epsilon_eridani_destroyer.png", "epsilon_eridani_destroyer_engine.png", 350, 0.04, 0.025, 250, 0.5)
         ]
     };
     const FIGHTERS = {
-        earth: ["earth_fighter.png", "earth_fighter_engine.png", 50, 240, 0.48],
-        gliese: ["gliese_fighter.png", "gliese_fighter_engine.png", 50, 210, 0.5],
-        eridani: ["eridani_fighter.png", "eridani_fighter_engine.png", 50, 190, 0.52]
+        earth: ship("earth_fighter.png", "earth_fighter_engine.png", 55, 0.3, 0.1, 20, 0.5, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
+        gliese: ship("gliese_fighter.png", "gliese_fighter_engine.png", 50, 0.2, 0.11, 20, -Infinity, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
+        eridani: ship("eridani_fighter.png", "eridani_fighter_engine.png", 40, 0.14, 0.07, 40, 0.5, { preferHullDamage: true, keepDistance: true })
     };
     const BOMBERS = {
-        earth: ["earth_bomber.png", "earth_bomber_engine.png", 100, 155, 1.25],
-        gliese: ["gliese_bomber.png", "gliese_bomber_engine.png", 100, 150, 1.2],
-        eridani: ["eridani_bomber.png", "eridani_bomber_engine.png", 100, 145, 1.18]
+        earth: ship("earth_bomber.png", "earth_bomber_engine.png", 100, 0.08, 0.04, 40, 0.5, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
+        gliese: ship("gliese_bomber.png", "gliese_bomber_engine.png", 100, 0.08, 0.04, 40, -Infinity, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
+        eridani: ship("eridani_bomber.png", "eridani_bomber_engine.png", 75, 0.08, 0.04, 60, 0.5, { preferHullDamage: true })
     };
+    const WEAPON_BATTERIES = {
+        "cruiser_1_4x.png": [{ weapon: "beam", count: 1, damage: 14.4, cooldown: 1.5, mount: "turret" }, { weapon: "laser", count: 4, damage: 6, cooldown: 0.5, mount: "turret" }],
+        "earth_missile_cruiser_4x.png": [{ weapon: "missile", count: 6, damage: 20, cooldown: 2, mount: "port" }],
+        "gliese_dreadnaught_4x.png": [{ weapon: "laser", count: 6, damage: 6, cooldown: 0.25, mount: "point" }],
+        "gliese_corvette.png": [{ weapon: "beam", count: 6, damage: 26.4, cooldown: 1.1, mount: "point" }],
+        "epsilon_eridani_gunboat.png": [{ weapon: "ion", secondary: "laser", count: 4, damage: 11, cooldown: 1.5, mount: "turret" }],
+        "epsilon_eridani_destroyer.png": [{ weapon: "ion", secondary: "laser", count: 6, damage: 11, cooldown: 1.5, mount: "turret" }],
+        "earth_fighter.png": [{ weapon: "laser", count: 2, damage: 2.5, cooldown: 0.25, mount: "point" }],
+        "gliese_fighter.png": [{ weapon: "laser", count: 2, damage: 2.5, cooldown: 0.25, mount: "point" }],
+        "eridani_fighter.png": [{ weapon: "laser", count: 1, damage: 3, cooldown: 0.25, mount: "turret" }],
+        "earth_bomber.png": [{ weapon: "missile", count: 2, damage: 10, cooldown: 2, mount: "point" }, { weapon: "ion", count: 1, damage: 2.5, cooldown: 0.25, mount: "turret" }],
+        "gliese_bomber.png": [{ weapon: "beam", count: 2, damage: 1.68, cooldown: 0.15, mount: "point" }],
+        "eridani_bomber.png": [{ weapon: "ion", secondary: "laser", count: 1, damage: 3, cooldown: 0.05, burst: 5, burstCooldown: 0.55, mount: "turret" }]
+    };
+    const EARTH_CRUISER_RANDOM_WEAPONS = [
+        { weapon: "laser", damage: 6, cooldown: 0.5, mount: "turret" },
+        { weapon: "ion", damage: 6, cooldown: 0.5, mount: "turret" },
+        { weapon: "beam", damage: 14.4, cooldown: 1.5, mount: "turret" },
+        { weapon: "missile", damage: 24, cooldown: 2, mount: "turret" },
+        { weapon: "none", damage: 0, cooldown: 0.5, mount: "turret" },
+        { weapon: "none", damage: 0, cooldown: 0.5, mount: "turret" },
+        { weapon: "none", damage: 0, cooldown: 0.5, mount: "turret" },
+        { weapon: "none", damage: 0, cooldown: 0.5, mount: "turret" }
+    ];
     const SPAWN_SETTINGS = {
         "cruiser_1_4x.png": "spawnEarthCruiser",
         "earth_missile_cruiser_4x.png": "spawnEarthMissileFrigate",
@@ -133,6 +162,12 @@
             this.battleState = "active";
             this.battleTimer = 0;
             this.battleNumber += 1;
+            const originAngles = [Math.PI * 7 / 6, Math.PI * 11 / 6, Math.PI / 2];
+            for (let index = originAngles.length - 1; index > 0; index -= 1) {
+                const swapIndex = Math.floor(this.random.next() * (index + 1));
+                [originAngles[index], originAngles[swapIndex]] = [originAngles[swapIndex], originAngles[index]];
+            }
+            this.factionOriginAngles = Object.fromEntries(FACTIONS.map((faction, index) => [faction, originAngles[index]]));
             this.stats.systemsVisited += 1;
             const asteroidCount = Math.max(0, Math.min(200, Math.round(this.settings.asteroids)));
             for (let index = 0; index < asteroidCount; index += 1) {
@@ -199,14 +234,15 @@
             const totalScore = FACTIONS.reduce((total, faction) => total + this.stats.factions[faction].score, 0);
             if (!useAutoBalance || !this.settings.autoBalance || totalScore < 10) return enabled[index % enabled.length];
             const weights = this.factionSpawnWeights();
-            const totalWeight = enabled.reduce((total, faction) => total + Math.max(0, weights[faction]), 0);
+            const weightedFactions = ["earth", "eridani", "gliese"].filter((faction) => enabled.includes(faction));
+            const totalWeight = weightedFactions.reduce((total, faction) => total + Math.max(0, weights[faction]) * SPAWN_WEIGHT_CORRECTION[faction], 0);
             if (!totalWeight) return enabled[index % enabled.length];
             let selection = this.random.next() * totalWeight;
-            for (const faction of enabled) {
-                selection -= Math.max(0, weights[faction]);
+            for (const faction of weightedFactions) {
+                selection -= Math.max(0, weights[faction]) * SPAWN_WEIGHT_CORRECTION[faction];
                 if (selection < 0) return faction;
             }
-            return enabled[enabled.length - 1];
+            return weightedFactions[weightedFactions.length - 1];
         }
 
         factionSpawnWeights() {
@@ -230,27 +266,38 @@
 
         definitionsFor(type, faction) {
             const definitions = type === "capital" ? CAPITALS[faction] : [type === "fighter" ? FIGHTERS[faction] : BOMBERS[faction]];
-            return definitions.filter((definition) => this.settings[SPAWN_SETTINGS[definition[0]]]);
+            return definitions.filter((definition) => this.settings[SPAWN_SETTINGS[definition.sprite]]);
         }
 
         spawnShip(type, faction) {
             const definitions = this.definitionsFor(type, faction);
             if (!definitions.length) return false;
             const definition = this.random.pick(definitions);
-            const originAngles = { earth: Math.PI * 7 / 6, gliese: Math.PI * 11 / 6, eridani: Math.PI / 2 };
-            const originAngle = originAngles[faction];
+            const originAngle = this.factionOriginAngles[faction];
             const radius = Math.min(this.width, this.height) * 0.32;
             const spread = Math.min(this.width, this.height) * 0.08;
             const x = this.width / 2 + Math.cos(originAngle) * radius + this.random.range(-spread, spread);
             const y = this.height / 2 + Math.sin(originAngle) * radius + this.random.range(-spread, spread);
+            const batteries = definition.randomWeapons
+                ? Array.from({ length: 5 }, () => ({
+                    ...EARTH_CRUISER_RANDOM_WEAPONS[Math.trunc(this.random.next() * 9 - 1)], count: 1
+                }))
+                : WEAPON_BATTERIES[definition.sprite].map((battery) => ({ ...battery }));
             this.ships.push({
-                id: this.nextId++, type, faction, sprite: definition[0], engine: definition[1],
-                x, y, angle: originAngle + Math.PI, speed: definition[3], maxSpeed: definition[3],
-                health: definition[2], maxHealth: definition[2], shield: definition[2] * 0.3,
-                maxShield: definition[2] * 0.3, radius: type === "capital" ? 34 : type === "bomber" ? 17 : 11,
-                fireDelay: definition[4], fireTimer: this.random.range(0, definition[4]), targetId: 0,
+                id: this.nextId++, type, faction, sprite: definition.sprite, engine: definition.engine,
+                x, y, angle: originAngle + Math.PI, speed: definition.speed, maxSpeed: definition.speed, turnRate: definition.turnRate,
+                health: definition.hull, maxHealth: definition.hull, shield: definition.shield, maxShield: definition.shield,
+                shieldRechargeDelay: 0,
+                radius: type === "capital" ? 34 : type === "bomber" ? 17 : 11,
+                shieldRadius: type === "capital" ? 64 : type === "bomber" ? 30 : 24,
+                weaponBatteries: batteries.map((battery) => ({ ...battery })),
+                weaponTimers: batteries.map((battery) => this.random.range(0, battery.cooldown)),
+                weaponBursts: batteries.map((battery) => battery.burst || 1),
+                fireDelay: Math.min(...batteries.map((battery) => battery.cooldown)), fireTimer: 0, targetId: 0,
                 retargetTimer: this.random.range(0, 0.5), state: "active", deathTimer: 0,
-                aiState: "engaging", systems: { shields: 100, engine: 100, weapons: 100 },
+                aiState: "engaging", attackRun: false, systems: { shields: 100, engine: 100, weapons: 100 },
+                ai: { ...definition },
+                ionIntegrity: definition.hull, disabledTimer: 0,
                 enginePulse: this.random.range(0, TWO_PI)
             });
             this.stats.factions[faction].spawns += 1;
@@ -289,9 +336,19 @@
                 ship.enginePulse += delta * 16;
                 return;
             }
+            if (ship.state === "disabled") {
+                ship.disabledTimer -= delta;
+                ship.speed *= Math.max(0, 1 - delta * 2);
+                if (ship.disabledTimer <= 0) {
+                    ship.state = "active";
+                    ship.ionIntegrity = ship.maxHealth;
+                }
+                return;
+            }
+            ship.weaponTimers = ship.weaponTimers.map((timer) => timer - delta);
             ship.retargetTimer -= delta;
             let target = this.ships.find((candidate) => candidate.id === ship.targetId && candidate.state === "active");
-            if (!target || ship.retargetTimer <= 0) {
+            if (!target || (ship.retargetTimer <= 0 && !ship.ai.focusEngage)) {
                 target = this.findTarget(ship);
                 ship.targetId = target ? target.id : 0;
                 ship.retargetTimer = this.random.range(0.25, 0.7);
@@ -301,12 +358,25 @@
             const offsetY = this.wrappedOffset(ship.y, target.y, this.height);
             const distance = Math.hypot(offsetX, offsetY) || 1;
             const desired = Math.atan2(offsetY, offsetX);
-            ship.aiState = ship.health / ship.maxHealth < 0.22 ? "retreating" : "engaging";
-            const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : desired;
+            if (ship.ai.attackRuns && target.type === "capital" && ship.aiState === "engaging" && distance < ship.ai.attackRunDistance) {
+                ship.attackRun = true;
+                ship.aiState = "retreating";
+            }
+            if (ship.aiState === "retreating") {
+                if (ship.attackRun && distance >= 400 * Math.sqrt(1.2)) {
+                    ship.attackRun = false;
+                    ship.aiState = "engaging";
+                } else if (!ship.attackRun && ship.shield / ship.maxShield >= ship.ai.shieldAttackThreshold) {
+                    ship.aiState = "engaging";
+                }
+            } else if (Number.isFinite(ship.ai.shieldAttackThreshold) && ship.shield <= 0) {
+                ship.aiState = "retreating";
+            }
+            const approachAngle = !ship.ai.straightAttackPath && distance < 320 ? desired + Math.PI / 4 : desired;
+            const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : approachAngle;
             let angleDelta = ((targetAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI;
-            const turnRate = ship.type === "fighter" ? 2.9 : ship.type === "bomber" ? 1.8 : 0.72;
-            ship.angle += Math.max(-turnRate * delta, Math.min(turnRate * delta, angleDelta));
-            const idealRange = ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130;
+            ship.angle += Math.max(-ship.turnRate * delta, Math.min(ship.turnRate * delta, angleDelta));
+            const idealRange = ship.ai.keepDistance ? 295 : ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130;
             const thrust = ship.aiState === "retreating" ? 1 : distance > idealRange ? 1 : distance < idealRange * 0.55 ? -0.35 : 0.2;
             const engineFactor = 0.35 + ship.systems.engine / 100 * 0.65;
             ship.speed += (ship.maxSpeed * engineFactor * thrust - ship.speed) * Math.min(1, delta * 2.5);
@@ -314,13 +384,13 @@
             ship.y += Math.sin(ship.angle) * ship.speed * delta;
             ship.x = ((ship.x % this.width) + this.width) % this.width;
             ship.y = ((ship.y % this.height) + this.height) % this.height;
-            ship.shield = Math.min(ship.maxShield, ship.shield + ship.maxShield * 0.025 * (ship.systems.shields / 100) * delta);
-            ship.fireTimer -= delta;
-            if (ship.aiState === "engaging" && ship.systems.weapons > 0 && ship.fireTimer <= 0 && distance < (ship.type === "capital" ? 520 : 340) && Math.abs(angleDelta) < 0.55) {
-                this.fire(ship, target);
-                const weaponFactor = 2 - ship.systems.weapons / 100;
-                ship.fireTimer = ship.fireDelay * weaponFactor * this.random.range(0.8, 1.25);
+            ship.shieldRechargeDelay = Math.max(0, ship.shieldRechargeDelay - delta);
+            if (ship.shieldRechargeDelay === 0) {
+                const rechargeRate = ship.type === "capital" ? 20 : ship.type === "bomber" ? 10 : 5;
+                ship.shield = Math.min(ship.maxShield, ship.shield + rechargeRate * (ship.systems.shields / 100) * delta);
             }
+            if (ship.aiState === "engaging" && ship.systems.weapons > 0 && distance < 400) this.updateWeaponSystems(ship, target, desired);
+            ship.fireTimer = Math.min(...ship.weaponTimers);
             ship.enginePulse += delta * 8;
         }
 
@@ -329,12 +399,14 @@
             let closest = null;
             let closestDistance = Infinity;
             for (const candidate of this.ships) {
-                if (candidate === ship || candidate.state !== "active") continue;
+                if (candidate === ship || !["active", "disabled"].includes(candidate.state)) continue;
                 if (!freeForAll && candidate.faction === ship.faction) continue;
                 const offsetX = this.wrappedOffset(ship.x, candidate.x, this.width);
                 const offsetY = this.wrappedOffset(ship.y, candidate.y, this.height);
                 const distance = offsetX ** 2 + offsetY ** 2;
-                if (distance < closestDistance) {
+                const candidatePreferred = ship.ai.preferHullDamage && candidate.shield <= 0;
+                const closestPreferred = Boolean(closest && ship.ai.preferHullDamage && closest.shield <= 0);
+                if ((!closestPreferred && candidatePreferred) || (candidatePreferred === closestPreferred && distance < closestDistance)) {
                     closest = candidate;
                     closestDistance = distance;
                 }
@@ -343,36 +415,83 @@
         }
 
         fire(ship, target) {
-            const weapon = ship.type === "bomber" || ship.sprite.includes("missile") ? "missile" :
-                ship.sprite === "gliese_corvette.png" ? "beam" :
-                    ship.faction === "eridani" && ship.type === "capital" ? "ion" : "laser";
+            const batteries = ship.weaponBatteries || WEAPON_BATTERIES[ship.sprite] || [{ weapon: "laser", count: 1, damage: 8 }];
+            const aimAngle = Math.atan2(
+                this.wrappedOffset(ship.y, target.y, this.height),
+                this.wrappedOffset(ship.x, target.x, this.width)
+            );
+            for (const battery of batteries) this.fireBattery(ship, target, battery, aimAngle);
+        }
+
+        updateWeaponSystems(ship, target, aimAngle) {
+            const batteries = ship.weaponBatteries;
+            const weaponFactor = 2 - ship.systems.weapons / 100;
+            for (let index = 0; index < batteries.length; index += 1) {
+                const battery = batteries[index];
+                const pointDelta = Math.abs(((aimAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI);
+                if (ship.weaponTimers[index] > 0 || (battery.mount === "point" && pointDelta > Math.PI / 9)) continue;
+                this.fireBattery(ship, target, battery, aimAngle);
+                if (battery.burst) {
+                    ship.weaponBursts[index] -= 1;
+                    if (ship.weaponBursts[index] > 0) {
+                        ship.weaponTimers[index] = battery.cooldown * weaponFactor;
+                    } else {
+                        ship.weaponBursts[index] = battery.burst;
+                        ship.weaponTimers[index] = battery.burstCooldown * weaponFactor;
+                    }
+                } else {
+                    ship.weaponTimers[index] = battery.cooldown * weaponFactor;
+                }
+            }
+        }
+
+        fireBattery(ship, target, battery, aimAngle = ship.angle) {
+            const weapon = battery.secondary && target.shield <= 0 ? battery.secondary : battery.weapon;
+            if (weapon === "none") return;
+            for (let index = 0; index < battery.count; index += 1) {
+                const center = (battery.count - 1) / 2;
+                const mountAngle = battery.mount === "turret" ? aimAngle : ship.angle;
+                const inaccuracy = battery.mount === "turret" && weapon !== "beam" ? this.random.range(-Math.PI / 18, Math.PI / 18) : 0;
+                const angle = mountAngle + inaccuracy;
+                this.fireProjectile(ship, target, weapon, battery.damage, angle, index - center);
+            }
+        }
+
+        fireProjectile(ship, target, weapon, damage, angle, lateralOffset) {
             const missile = weapon === "missile";
-            const speed = missile ? 255 : ship.type === "fighter" ? 490 : 420;
+            const speed = missile ? 250 : ship.type === "fighter" ? 750 : 500;
             const color = weapon === "ion" ? "#35a8ff" : ship.faction === "earth" ? "#76d7ff" : ship.faction === "gliese" ? "#ff6659" : "#7dffad";
             this.stats.factions[ship.faction].projectilesSpawned += 1;
             if (weapon === "beam") {
-                this.damageShip(target, 12, ship.faction);
                 this.stats.factions[ship.faction].projectilesHit += 1;
                 this.effects.push({
-                    kind: "beam", x: ship.x, y: ship.y,
+                    kind: "beam",
+                    x: ship.x + Math.cos(ship.angle + Math.PI / 2) * lateralOffset * 4,
+                    y: ship.y + Math.sin(ship.angle + Math.PI / 2) * lateralOffset * 4,
                     targetX: ship.x + this.wrappedOffset(ship.x, target.x, this.width),
                     targetY: ship.y + this.wrappedOffset(ship.y, target.y, this.height),
-                    age: 0, life: 0.18, size: 3, color
+                    targetId: target.id, faction: ship.faction, damageRate: damage / (ship.type === "bomber" ? 0.1 : 1),
+                    age: 0, life: ship.type === "bomber" ? 0.1 : 1, size: ship.type === "bomber" ? 2 : 3, color
                 });
                 return;
             }
+            const sideX = Math.cos(ship.angle + Math.PI / 2) * lateralOffset * 4;
+            const sideY = Math.sin(ship.angle + Math.PI / 2) * lateralOffset * 4;
             this.projectiles.push({
-                x: ship.x + Math.cos(ship.angle) * ship.radius,
-                y: ship.y + Math.sin(ship.angle) * ship.radius,
-                vx: Math.cos(ship.angle) * speed,
-                vy: Math.sin(ship.angle) * speed,
-                angle: ship.angle,
+                x: ship.x + Math.cos(angle) * ship.radius + sideX,
+                y: ship.y + Math.sin(angle) * ship.radius + sideY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                angle,
                 targetId: target.id,
                 faction: ship.faction,
-                damage: missile ? (ship.type === "capital" ? 24 : 36) : weapon === "ion" ? 22 : ship.type === "capital" ? 18 : 8,
-                life: missile ? 4 : 1.8,
+                damage,
+                shieldDamage: weapon === "ion" ? 2 : 1,
+                hullDamage: missile ? 2 : weapon === "ion" ? 0 : 1,
+                life: 5,
                 missile,
                 weapon,
+                size: missile ? (ship.type === "capital" ? 22 : 16) : weapon === "ion" ? 12 : ship.type === "fighter" ? 12 : 18,
                 color
             });
         }
@@ -381,14 +500,25 @@
             for (const projectile of this.projectiles) {
                 projectile.life -= delta;
                 if (projectile.missile) {
-                    const target = this.ships.find((ship) => ship.id === projectile.targetId && ship.state === "active");
+                    let target = this.ships.find((ship) => ship.id === projectile.targetId && ["active", "disabled"].includes(ship.state));
+                    if (!target) {
+                        target = this.ships
+                            .filter((ship) => ["active", "disabled"].includes(ship.state) && ship.faction !== projectile.faction)
+                            .sort((left, right) => {
+                                const leftDistance = this.wrappedOffset(projectile.x, left.x, this.width) ** 2 + this.wrappedOffset(projectile.y, left.y, this.height) ** 2;
+                                const rightDistance = this.wrappedOffset(projectile.x, right.x, this.width) ** 2 + this.wrappedOffset(projectile.y, right.y, this.height) ** 2;
+                                return leftDistance - rightDistance;
+                            })[0];
+                        projectile.targetId = target?.id || 0;
+                    }
                     if (target) {
                         const desired = Math.atan2(
                             this.wrappedOffset(projectile.y, target.y, this.height),
                             this.wrappedOffset(projectile.x, target.x, this.width)
                         );
                         let turn = ((desired - projectile.angle + Math.PI * 3) % TWO_PI) - Math.PI;
-                        projectile.angle += Math.max(-2.5 * delta, Math.min(2.5 * delta, turn));
+                        const missileTurnRate = Math.PI * 5 / 6;
+                        projectile.angle += Math.max(-missileTurnRate * delta, Math.min(missileTurnRate * delta, turn));
                         const speed = Math.hypot(projectile.vx, projectile.vy);
                         projectile.vx = Math.cos(projectile.angle) * speed;
                         projectile.vy = Math.sin(projectile.angle) * speed;
@@ -397,12 +527,19 @@
                 }
                 projectile.x = ((projectile.x + projectile.vx * delta) % this.width + this.width) % this.width;
                 projectile.y = ((projectile.y + projectile.vy * delta) % this.height + this.height) % this.height;
-                const target = this.ships.find((ship) => ship.id === projectile.targetId && ship.state === "active");
+                const target = this.ships.find((ship) => {
+                    if (!["active", "disabled"].includes(ship.state) || ship.faction === projectile.faction) return false;
+                    const collisionRadius = ship.shield > 0 ? ship.shieldRadius : ship.radius;
+                    return Math.hypot(
+                        this.wrappedOffset(projectile.x, ship.x, this.width),
+                        this.wrappedOffset(projectile.y, ship.y, this.height)
+                    ) < collisionRadius + 5;
+                });
                 if (target && Math.hypot(
                     this.wrappedOffset(projectile.x, target.x, this.width),
                     this.wrappedOffset(projectile.y, target.y, this.height)
                 ) < target.radius + 5) {
-                    this.damageShip(target, projectile.damage, projectile.faction);
+                    this.damageShip(target, projectile.damage, projectile.faction, projectile.shieldDamage, projectile.hullDamage, projectile.weapon);
                     projectile.life = 0;
                     this.stats.factions[projectile.faction].projectilesHit += 1;
                     this.effects.push({ kind: "hit", x: projectile.x, y: projectile.y, age: 0, life: 0.28, size: projectile.missile ? 26 : 13, color: projectile.color });
@@ -422,13 +559,27 @@
             return offset;
         }
 
-        damageShip(ship, damage, attackingFaction = null) {
+        damageShip(ship, damage, attackingFaction = null, shieldMultiplier = 1, hullMultiplier = 1, weapon = null) {
             const hadShield = ship.shield > 0;
-            const shieldDamage = Math.min(ship.shield, damage);
+            const shieldDamage = Math.min(ship.shield, damage * shieldMultiplier);
             ship.shield -= shieldDamage;
-            if (hadShield && ship.shield <= 0) this.stats.factions[ship.faction].shieldCollapses += 1;
-            ship.health -= damage - shieldDamage;
-            const hullDamage = damage - shieldDamage;
+            if (hadShield && ship.shield <= 0) {
+                ship.shield = 0;
+                ship.shieldRechargeDelay = 3;
+                this.stats.factions[ship.faction].shieldCollapses += 1;
+            }
+            const remainingDamage = hadShield ? 0 : damage;
+            const hullDamage = remainingDamage * hullMultiplier;
+            ship.health -= hullDamage;
+            if (weapon === "ion" && !hadShield) {
+                ship.ionIntegrity -= damage;
+                ship.systems.weapons = Math.max(0, ship.systems.weapons - damage * 1.5);
+                if (ship.ionIntegrity <= 0 && ship.state === "active") {
+                    ship.state = "disabled";
+                    ship.disabledTimer = 5;
+                    ship.speed *= 0.2;
+                }
+            }
             if (hullDamage > 0 && this.random.next() < 0.3) {
                 const systemName = this.random.pick(["shields", "engine", "weapons"]);
                 const previous = ship.systems[systemName];
@@ -473,6 +624,14 @@
         updateEffects(delta) {
             for (const effect of this.effects) {
                 effect.age += delta;
+                if (effect.kind === "beam") {
+                    const target = this.ships.find((ship) => ship.id === effect.targetId && ["active", "disabled"].includes(ship.state));
+                    if (target) {
+                        effect.targetX = effect.x + this.wrappedOffset(effect.x, target.x, this.width);
+                        effect.targetY = effect.y + this.wrappedOffset(effect.y, target.y, this.height);
+                        this.damageShip(target, effect.damageRate * delta, effect.faction, 1, 1, "beam");
+                    }
+                }
                 if (effect.kind === "debris") {
                     effect.x += effect.vx * delta;
                     effect.y += effect.vy * delta;
@@ -518,19 +677,19 @@
         }
 
         processBattleState(delta) {
-            if (this.settings.simulationMode === "noships" || this.settings.simulationMode === "freeforall" || this.battleFactionCount < 2) return;
+            if (this.settings.simulationMode === "noships" || this.settings.simulationMode === "freeforall") return;
             if (this.battleState === "warp") {
                 this.battleTimer -= delta;
                 if (this.battleTimer <= 0) this.restart();
                 return;
             }
-            const activeFactions = [...new Set(this.ships.filter((ship) => ship.state === "active").map((ship) => ship.faction))];
-            const remainingShips = this.ships.filter((ship) => ship.state === "active" || ship.state === "exploding");
+            const activeFactions = [...new Set(this.ships.filter((ship) => ["active", "disabled"].includes(ship.state)).map((ship) => ship.faction))];
+            const remainingShips = this.ships.filter((ship) => ["active", "disabled", "exploding"].includes(ship.state));
             if (remainingShips.length && activeFactions.length > 1) return;
             const winner = activeFactions[0];
             if (winner) this.stats.factions[winner].score += 1;
             for (const ship of this.ships) {
-                if (ship.state === "active") {
+                if (["active", "disabled"].includes(ship.state)) {
                     ship.state = "warping";
                     this.stats.factions[ship.faction].warps += 1;
                 }

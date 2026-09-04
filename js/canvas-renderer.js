@@ -120,8 +120,23 @@
             this.drawSprite(context, ship.sprite, x, y, ship.angle + Math.PI / 2, null, alpha);
             if (ship.shield < ship.maxShield && ship.shield > 0) {
                 const shieldName = ship.type === "capital" ? "shield_cruiser_class_4x.png" : ship.type === "bomber" ? "shield_bomber_class.png" : "shield_fighter_class.png";
+                this.drawFactionShield(context, ship, x, y);
                 this.drawSprite(context, shieldName, x, y, ship.angle + Math.PI / 2, ship.radius * 2.8, 0.12 + 0.2 * (ship.shield / ship.maxShield), true);
             }
+        }
+
+        drawFactionShield(context, ship, x, y) {
+            const colors = { earth: "#72d7ff", gliese: "#ff6659", eridani: "#67ffae" };
+            const strength = ship.shield / ship.maxShield;
+            context.save();
+            context.globalCompositeOperation = "lighter";
+            context.globalAlpha = 0.18 + strength * 0.22;
+            context.strokeStyle = colors[ship.faction];
+            context.lineWidth = Math.max(2, ship.radius * 0.12);
+            context.beginPath();
+            context.arc(x, y, ship.radius * 1.4, 0, Math.PI * 2);
+            context.stroke();
+            context.restore();
         }
 
         drawWarp(context, x, y, angle, radius, alpha) {
@@ -148,11 +163,29 @@
             context.globalCompositeOperation = "lighter";
             for (const projectile of projectiles) {
                 if (projectile.missile) {
-                    this.drawSprite(context, "missile2_4x.png", projectile.x, projectile.y, projectile.angle + Math.PI / 2, 12, 1);
+                    const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
+                    context.strokeStyle = "rgba(255,145,70,0.8)";
+                    context.lineWidth = 3;
+                    context.beginPath();
+                    context.moveTo(projectile.x, projectile.y);
+                    context.lineTo(projectile.x - projectile.vx / speed * projectile.size * 1.4, projectile.y - projectile.vy / speed * projectile.size * 1.4);
+                    context.stroke();
+                    this.drawSprite(context, "missile2_4x.png", projectile.x, projectile.y, projectile.angle + Math.PI / 2, projectile.size, 1);
                 } else if (projectile.weapon === "ion") {
-                    this.drawSprite(context, "ball_laser_2x.png", projectile.x, projectile.y, projectile.angle, 9, 1, true);
+                    context.fillStyle = "rgba(55,170,255,0.35)";
+                    context.beginPath();
+                    context.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI * 2);
+                    context.fill();
+                    this.drawSprite(context, "ball_laser_2x.png", projectile.x, projectile.y, projectile.angle, projectile.size, 1, true);
                 } else {
-                    this.drawSprite(context, "laser_4x.png", projectile.x, projectile.y, projectile.angle + Math.PI / 2, 14, 1, true);
+                    const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
+                    context.strokeStyle = projectile.color;
+                    context.lineWidth = projectile.size > 12 ? 3 : 2;
+                    context.beginPath();
+                    context.moveTo(projectile.x, projectile.y);
+                    context.lineTo(projectile.x - projectile.vx / speed * projectile.size * 1.8, projectile.y - projectile.vy / speed * projectile.size * 1.8);
+                    context.stroke();
+                    this.drawSprite(context, "laser_4x.png", projectile.x, projectile.y, projectile.angle + Math.PI / 2, projectile.size, 1, true);
                 }
             }
             context.restore();

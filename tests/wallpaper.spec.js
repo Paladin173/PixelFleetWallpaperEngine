@@ -120,7 +120,7 @@ test("factions start equidistant with balanced durability and varied battle seed
         return { distances, earthHealth, firstLayout, secondLayout };
     });
     expect(Math.max(...state.distances) / Math.min(...state.distances)).toBeLessThan(1.25);
-    expect(state.earthHealth).toEqual({ capital: [540], fighter: [50], bomber: [100] });
+    expect(state.earthHealth).toEqual({ capital: [700], fighter: [55], bomber: [100] });
     expect(state.secondLayout).not.toEqual(state.firstLayout);
 });
 
@@ -168,6 +168,7 @@ test("ships and projectiles cross edges seamlessly and warp without the boxed bi
         const shortestOffset = world.wrappedOffset(ship.x, target.x, world.width);
         ship.sprite = "gliese_corvette.png";
         ship.faction = "gliese";
+        ship.weaponBatteries = null;
         world.fire(ship, target);
         const beamTargetX = world.effects.find((effect) => effect.kind === "beam").targetX;
 
@@ -505,26 +506,82 @@ test("maximum settings create a 70-ship battle", async ({ page }) => {
     expect(counts).toEqual({ capital: 20, fighter: 30, bomber: 20 });
 });
 
-test("beams, ion fire, subsystem damage, and asteroid collisions are functional", async ({ page }) => {
+test("all APK ship classes use their distinct weapon batteries and shields", async ({ page }) => {
     await openWallpaper(page);
     const result = await page.evaluate(() => {
         const world = window.pixelFleetApp.world;
         const shooter = world.ships[0];
         const target = world.ships.find((ship) => ship.faction !== shooter.faction);
-        shooter.sprite = "gliese_corvette.png";
-        shooter.faction = "gliese";
-        const durabilityBeforeBeam = target.health + target.shield;
-        world.fire(shooter, target);
-        const beam = world.effects.some((effect) => effect.kind === "beam");
-        const beamDamage = durabilityBeforeBeam - target.health - target.shield;
-        shooter.sprite = "epsilon_eridani_gunboat.png";
-        shooter.faction = "eridani";
-        world.fire(shooter, target);
-        const ionDamage = world.projectiles.find((projectile) => projectile.weapon === "ion").damage;
-        shooter.sprite = "earth_missile_cruiser_4x.png";
-        shooter.faction = "earth";
-        world.fire(shooter, target);
-        const capitalMissileDamage = world.projectiles.find((projectile) => projectile.weapon === "missile").damage;
+        const profile = (sprite, faction, type, shield = 100) => {
+            world.projectiles.length = 0;
+            world.effects.length = 0;
+            Object.assign(shooter, { sprite, faction, type });
+            shooter.weaponBatteries = null;
+            target.shield = shield;
+            world.fire(shooter, target);
+            const weapons = world.projectiles.map((projectile) => projectile.weapon);
+            weapons.push(...world.effects.filter((effect) => effect.kind === "beam").map(() => "beam"));
+            return Object.fromEntries([...new Set(weapons)].sort().map((weapon) => [weapon, weapons.filter((value) => value === weapon).length]));
+        };
+        const weapons = {
+            earthCruiser: profile("cruiser_1_4x.png", "earth", "capital"),
+            earthMissileFrigate: profile("earth_missile_cruiser_4x.png", "earth", "capital"),
+            glieseDreadnaught: profile("gliese_dreadnaught_4x.png", "gliese", "capital"),
+            glieseCorvette: profile("gliese_corvette.png", "gliese", "capital"),
+            eridaniGunboatShielded: profile("epsilon_eridani_gunboat.png", "eridani", "capital"),
+            eridaniGunboatHull: profile("epsilon_eridani_gunboat.png", "eridani", "capital", 0),
+            eridaniDestroyer: profile("epsilon_eridani_destroyer.png", "eridani", "capital"),
+            earthFighter: profile("earth_fighter.png", "earth", "fighter"),
+            glieseFighter: profile("gliese_fighter.png", "gliese", "fighter"),
+            eridaniFighter: profile("eridani_fighter.png", "eridani", "fighter"),
+            earthBomber: profile("earth_bomber.png", "earth", "bomber"),
+            glieseBomber: profile("gliese_bomber.png", "gliese", "bomber"),
+            eridaniBomberShielded: profile("eridani_bomber.png", "eridani", "bomber"),
+            eridaniBomberHull: profile("eridani_bomber.png", "eridani", "bomber", 0)
+        };
+        const originalSpawnPick = world.random.pick;
+        const spawnProfile = (sprite, type, faction) => {
+            world.random.pick = (values) => values.find((value) => value.sprite === sprite) || values[0];
+            world.spawnShip(type, faction);
+            const spawned = world.ships.at(-1);
+            return {
+                hull: spawned.maxHealth,
+                shield: spawned.maxShield,
+                speed: spawned.maxSpeed,
+                turnRate: Number(spawned.turnRate.toFixed(6)),
+                shieldAttackThreshold: spawned.ai.shieldAttackThreshold,
+                keepDistance: Boolean(spawned.ai.keepDistance),
+                straightAttackPath: Boolean(spawned.ai.straightAttackPath),
+                attackRuns: Boolean(spawned.ai.attackRuns),
+                weapons: spawned.weaponBatteries.map((battery) => ({
+                    weapon: battery.weapon,
+                    secondary: battery.secondary || null,
+                    count: battery.count,
+                    damage: battery.damage,
+                    cooldown: battery.cooldown,
+                    mount: battery.mount,
+                    burst: battery.burst || 1,
+                    burstCooldown: battery.burstCooldown || null
+                }))
+            };
+        };
+        const parameters = {
+            earthCruiser: spawnProfile("cruiser_1_4x.png", "capital", "earth"),
+            earthMissileFrigate: spawnProfile("earth_missile_cruiser_4x.png", "capital", "earth"),
+            glieseDreadnaught: spawnProfile("gliese_dreadnaught_4x.png", "capital", "gliese"),
+            glieseCorvette: spawnProfile("gliese_corvette.png", "capital", "gliese"),
+            eridaniGunboat: spawnProfile("epsilon_eridani_gunboat.png", "capital", "eridani"),
+            eridaniDestroyer: spawnProfile("epsilon_eridani_destroyer.png", "capital", "eridani"),
+            earthFighter: spawnProfile("earth_fighter.png", "fighter", "earth"),
+            glieseFighter: spawnProfile("gliese_fighter.png", "fighter", "gliese"),
+            eridaniFighter: spawnProfile("eridani_fighter.png", "fighter", "eridani"),
+            earthBomber: spawnProfile("earth_bomber.png", "bomber", "earth"),
+            glieseBomber: spawnProfile("gliese_bomber.png", "bomber", "gliese"),
+            eridaniBomber: spawnProfile("eridani_bomber.png", "bomber", "eridani")
+        };
+        const earthCruiserWeapons = parameters.earthCruiser.weapons;
+        parameters.earthCruiser.weapons = [];
+        world.random.pick = originalSpawnPick;
 
         target.shield = 0;
         target.health = 1000;
@@ -539,15 +596,131 @@ test("beams, ion fire, subsystem damage, and asteroid collisions are functional"
         world.random.pick = originalPick;
         const subsystemDestroyed = world.stats.factions.earth.systemsDestroyed > systemsBefore && target.systems.shields === 0;
 
+        target.shield = 100;
+        target.health = 100;
+        world.damageShip(target, 10, "earth", 2, 0, "ion");
+        const ionDamage = { shield: 100 - target.shield, hull: 100 - target.health };
+        target.shield = 0;
+        target.health = 100;
+        world.damageShip(target, 10, "earth", 1, 2, "missile");
+        const missileHullDamage = 100 - target.health;
+        target.shield = 5;
+        target.health = 100;
+        target.shieldRechargeDelay = 0;
+        world.damageShip(target, 10, "earth", 1, 2, "missile");
+        const shieldCollapse = { shield: target.shield, health: target.health, delay: target.shieldRechargeDelay };
+
         const asteroid = world.asteroids.find((item) => !item.belt);
         asteroid.x = target.x / world.width;
         asteroid.y = target.y / world.height;
         asteroid.hitTimer = 0;
         const durabilityBefore = target.health + target.shield;
         world.updateBackground(1 / 60);
-        return { beam, beamDamage, ionDamage, capitalMissileDamage, subsystemDestroyed, asteroidDamage: target.health + target.shield < durabilityBefore };
+        return { weapons, parameters, earthCruiserWeapons, subsystemDestroyed, ionDamage, missileHullDamage, shieldCollapse, asteroidDamage: target.health + target.shield < durabilityBefore };
     });
-    expect(result).toEqual({ beam: true, beamDamage: 12, ionDamage: 22, capitalMissileDamage: 24, subsystemDestroyed: true, asteroidDamage: true });
+    expect(result.weapons).toEqual({
+        earthCruiser: { beam: 1, laser: 4 },
+        earthMissileFrigate: { missile: 6 },
+        glieseDreadnaught: { laser: 6 },
+        glieseCorvette: { beam: 6 },
+        eridaniGunboatShielded: { ion: 4 },
+        eridaniGunboatHull: { laser: 4 },
+        eridaniDestroyer: { ion: 6 },
+        earthFighter: { laser: 2 },
+        glieseFighter: { laser: 2 },
+        eridaniFighter: { laser: 1 },
+        earthBomber: { ion: 1, missile: 2 },
+        glieseBomber: { beam: 2 },
+        eridaniBomberShielded: { ion: 1 },
+        eridaniBomberHull: { laser: 1 }
+    });
+    const weapon = (type, count, damage, cooldown, mount, secondary = null, burst = 1, burstCooldown = null) => ({
+        weapon: type, secondary, count, damage, cooldown, mount, burst, burstCooldown
+    });
+    expect(result.earthCruiserWeapons).toHaveLength(5);
+    expect(result.earthCruiserWeapons.every((battery) => battery.count === 1 && battery.mount === "turret")).toBe(true);
+    expect(result.earthCruiserWeapons.every((battery) => ["laser", "ion", "beam", "missile", "none"].includes(battery.weapon))).toBe(true);
+    expect(result.parameters).toEqual({
+        earthCruiser: { hull: 700, shield: 200, speed: 100, turnRate: 0.436332, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: false, attackRuns: false, weapons: [] },
+        earthMissileFrigate: { hull: 700, shield: 200, speed: 50, turnRate: 0.349066, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: false, attackRuns: false, weapons: [weapon("missile", 6, 20, 2, "port")] },
+        glieseDreadnaught: { hull: 500, shield: 200, speed: 50, turnRate: 0.523599, shieldAttackThreshold: -Infinity, keepDistance: false, straightAttackPath: true, attackRuns: false, weapons: [weapon("laser", 6, 6, 0.25, "point")] },
+        glieseCorvette: { hull: 500, shield: 200, speed: 70, turnRate: 0.523599, shieldAttackThreshold: -Infinity, keepDistance: false, straightAttackPath: true, attackRuns: false, weapons: [weapon("beam", 6, 26.4, 1.1, "point")] },
+        eridaniGunboat: { hull: 290, shield: 270, speed: 100, turnRate: 0.698132, shieldAttackThreshold: 0.75, keepDistance: true, straightAttackPath: false, attackRuns: false, weapons: [weapon("ion", 4, 11, 1.5, "turret", "laser")] },
+        eridaniDestroyer: { hull: 350, shield: 250, speed: 40, turnRate: 0.436332, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: false, attackRuns: false, weapons: [weapon("ion", 6, 11, 1.5, "turret", "laser")] },
+        earthFighter: { hull: 55, shield: 20, speed: 300, turnRate: 1.745329, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: true, attackRuns: true, weapons: [weapon("laser", 2, 2.5, 0.25, "point")] },
+        glieseFighter: { hull: 50, shield: 20, speed: 200, turnRate: 1.919862, shieldAttackThreshold: -Infinity, keepDistance: false, straightAttackPath: true, attackRuns: true, weapons: [weapon("laser", 2, 2.5, 0.25, "point")] },
+        eridaniFighter: { hull: 40, shield: 40, speed: 140, turnRate: 1.22173, shieldAttackThreshold: 0.5, keepDistance: true, straightAttackPath: false, attackRuns: false, weapons: [weapon("laser", 1, 3, 0.25, "turret")] },
+        earthBomber: { hull: 100, shield: 40, speed: 80, turnRate: 0.698132, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: true, attackRuns: true, weapons: [weapon("missile", 2, 10, 2, "point"), weapon("ion", 1, 2.5, 0.25, "turret")] },
+        glieseBomber: { hull: 100, shield: 40, speed: 80, turnRate: 0.698132, shieldAttackThreshold: -Infinity, keepDistance: false, straightAttackPath: true, attackRuns: true, weapons: [weapon("beam", 2, 1.68, 0.15, "point")] },
+        eridaniBomber: { hull: 75, shield: 60, speed: 80, turnRate: 0.698132, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: false, attackRuns: false, weapons: [weapon("ion", 1, 3, 0.05, "turret", "laser", 5, 0.55)] }
+    });
+    expect(result).toMatchObject({
+        subsystemDestroyed: true,
+        ionDamage: { shield: 20, hull: 0 },
+        missileHullDamage: 20,
+        shieldCollapse: { shield: 0, health: 100, delay: 3 },
+        asteroidDamage: true
+    });
+});
+
+test("APK projectile guidance, collision, burst, and ion disable semantics are preserved", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        const shooter = world.ships.find((ship) => ship.faction === "earth");
+        const blocker = world.ships.find((ship) => ship.faction === "gliese");
+        const intended = world.ships.find((ship) => ship.faction === "eridani");
+        Object.assign(shooter, { x: 100, y: 100, state: "active" });
+        Object.assign(blocker, { x: 200, y: 100, state: "active", health: 100, maxHealth: 100, shield: 0 });
+        Object.assign(intended, { x: 400, y: 100, state: "active", health: 100, maxHealth: 100, shield: 0 });
+        world.ships = [shooter, blocker, intended];
+        world.projectiles = [{
+            x: 200, y: 100, vx: 0, vy: 0, angle: 0, targetId: intended.id,
+            faction: "earth", damage: 5, shieldDamage: 1, hullDamage: 1,
+            life: 1, missile: false, weapon: "laser", color: "#fff"
+        }];
+        world.updateProjectiles(0);
+        const firstContact = { blocker: blocker.health, intended: intended.health };
+
+        world.projectiles = [{
+            x: 110, y: 100, vx: 100, vy: 0, angle: 0, targetId: -1,
+            faction: "earth", damage: 10, shieldDamage: 1, hullDamage: 2,
+            life: 4, missile: true, weapon: "missile", size: 16, color: "#fff"
+        }];
+        world.updateProjectiles(0);
+        const reacquiredTarget = world.projectiles[0].targetId;
+
+        blocker.shield = 0;
+        blocker.ionIntegrity = 5;
+        blocker.state = "active";
+        world.damageShip(blocker, 5, "eridani", 2, 0, "ion");
+        const disabled = { state: blocker.state, timer: blocker.disabledTimer };
+        world.updateShip(blocker, 5.1);
+        const recovered = { state: blocker.state, ionIntegrity: blocker.ionIntegrity };
+
+        const bomber = world.ships.find((ship) => ship.sprite === "eridani_bomber.png") || shooter;
+        Object.assign(bomber, {
+            sprite: "eridani_bomber.png", faction: "eridani", type: "bomber", state: "active",
+            weaponBatteries: [{ weapon: "ion", secondary: "laser", count: 1, damage: 3, cooldown: 0.05, burst: 5, burstCooldown: 0.55, mount: "turret" }],
+            weaponTimers: [0], weaponBursts: [5], systems: { ...bomber.systems, weapons: 100 }
+        });
+        blocker.faction = "earth";
+        blocker.shield = 100;
+        world.projectiles.length = 0;
+        const burstShots = [];
+        for (let shot = 0; shot < 5; shot += 1) {
+            world.updateWeaponSystems(bomber, blocker, 0);
+            burstShots.push(world.projectiles.length);
+            if (shot < 4) bomber.weaponTimers[0] = 0;
+        }
+        return { firstContact, reacquiredTarget, expectedReacquiredTarget: blocker.id, disabled, recovered, burstShots, burstCooldown: bomber.weaponTimers[0] };
+    });
+    expect(result.firstContact).toEqual({ blocker: 95, intended: 100 });
+    expect(result.reacquiredTarget).toBe(result.expectedReacquiredTarget);
+    expect(result.disabled).toEqual({ state: "disabled", timer: 5 });
+    expect(result.recovered).toEqual({ state: "active", ionIntegrity: 100 });
+    expect(result.burstShots).toEqual([1, 2, 3, 4, 5]);
+    expect(result.burstCooldown).toBe(0.55);
 });
 
 test("Free for All targets same-faction ships and suppresses the score overlay", async ({ page }) => {
@@ -570,7 +743,7 @@ test("Free for All targets same-faction ships and suppresses the score overlay",
     expect(result).toEqual({ targetId: result.expectedId, expectedId: result.expectedId, scoreDrawn: false });
 });
 
-test("debris and slow motion settings update live, and one-faction configurations stay stable", async ({ page }) => {
+test("debris and slow motion update live, and one-faction configurations complete", async ({ page }) => {
     await openWallpaper(page);
     const result = await page.evaluate(() => {
         const app = window.pixelFleetApp;
@@ -605,6 +778,6 @@ test("debris and slow motion settings update live, and one-faction configuration
     expect(result.debrisWhileDisabled).toBe(false);
     expect(result.slowedScale).toBeLessThan(1);
     expect(result.resumedScale).toBeGreaterThan(result.slowedScale);
-    expect(result.finalBattleNumber).toBe(result.battleNumber);
+    expect(result.finalBattleNumber).toBeGreaterThan(result.battleNumber);
     expect(result.factionCount).toBe(1);
 });

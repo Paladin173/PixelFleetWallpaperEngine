@@ -22,12 +22,16 @@ wallpaper runtime features and have no desktop equivalent.
 
 - [x] Three factions, six capital classes, three fighters, and three bombers
 - [x] Maximum 20 capital ships, 30 fighters, and 20 bombers
-- [x] Lasers, missiles, beams, ion fire, shields, hulls, and subsystem degradation
+- [x] APK-derived per-class laser, missile, beam, and ion batteries
+- [x] Class shield capacities, collapse delays, recharge rates, and secondary weapons
+- [x] Weapon-specific shield, hull, and subsystem damage
 - [x] Target acquisition, engagement, retreat, destruction, debris, and warp states
 - [x] Damaging free asteroids and a separately controlled decorative asteroid belt
 - [x] Winner scoring, survivor warp-out, battle restart, and continuous modes
 - [x] Persistent faction scores and lifetime combat statistics
 - [x] APK-derived score-share and rank-transfer automatic faction balancing
+- [x] APK-derived hull, shield, movement, turn, mount, charge, damage, and AI parameters
+- [x] Audited desktop balance correction with deterministic 90-battle evidence
 
 ## Acceptance Gates
 
