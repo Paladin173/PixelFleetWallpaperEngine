@@ -69,8 +69,9 @@
             for (const asteroid of world.asteroids) this.drawSprite(context, asteroid.sprite, asteroid.x * world.width, asteroid.y * world.height, asteroid.angle, asteroid.size, 0.55);
             for (const effect of world.effects.filter((item) => item.kind === "debris")) this.drawSprite(context, effect.sprite, effect.x, effect.y, effect.angle, effect.size, Math.max(0, 1 - effect.age / effect.life));
             for (const ship of world.ships) this.drawShip(context, ship, world);
+            for (const effect of world.effects.filter((item) => item.kind === "smoke")) this.drawEffect(context, effect);
             this.drawProjectiles(context, world.projectiles);
-            for (const effect of world.effects.filter((item) => item.kind !== "debris")) this.drawEffect(context, effect);
+            for (const effect of world.effects.filter((item) => item.kind !== "debris" && item.kind !== "smoke")) this.drawEffect(context, effect);
             this.drawDebug(context, world, settings);
             context.setTransform(1, 0, 0, 1, 0, 0);
             this.drawUi(context, world, settings, fps);
@@ -120,23 +121,8 @@
             this.drawSprite(context, ship.sprite, x, y, ship.angle + Math.PI / 2, null, alpha);
             if (ship.shield < ship.maxShield && ship.shield > 0) {
                 const shieldName = ship.type === "capital" ? "shield_cruiser_class_4x.png" : ship.type === "bomber" ? "shield_bomber_class.png" : "shield_fighter_class.png";
-                this.drawFactionShield(context, ship, x, y);
-                this.drawSprite(context, shieldName, x, y, ship.angle + Math.PI / 2, ship.radius * 2.8, 0.12 + 0.2 * (ship.shield / ship.maxShield), true);
+                this.drawSprite(context, shieldName, x, y, ship.angle + Math.PI / 2, ship.radius * 2.45, 0.1 + 0.18 * (ship.shield / ship.maxShield), true);
             }
-        }
-
-        drawFactionShield(context, ship, x, y) {
-            const colors = { earth: "#72d7ff", gliese: "#ff6659", eridani: "#67ffae" };
-            const strength = ship.shield / ship.maxShield;
-            context.save();
-            context.globalCompositeOperation = "lighter";
-            context.globalAlpha = 0.18 + strength * 0.22;
-            context.strokeStyle = colors[ship.faction];
-            context.lineWidth = Math.max(2, ship.radius * 0.12);
-            context.beginPath();
-            context.arc(x, y, ship.radius * 1.4, 0, Math.PI * 2);
-            context.stroke();
-            context.restore();
         }
 
         drawWarp(context, x, y, angle, radius, alpha) {
@@ -160,24 +146,66 @@
 
         drawProjectiles(context, projectiles) {
             context.save();
-            context.globalCompositeOperation = "lighter";
             for (const projectile of projectiles) {
                 if (projectile.missile) {
-                    const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
-                    context.strokeStyle = "rgba(255,145,70,0.8)";
-                    context.lineWidth = 3;
+                    context.save();
+                    context.translate(projectile.x, projectile.y);
+                    context.rotate(projectile.angle);
+                    context.globalCompositeOperation = "lighter";
+                    const exhaust = context.createLinearGradient(-projectile.size * 1.8, 0, -projectile.size * 0.2, 0);
+                    exhaust.addColorStop(0, "rgba(255,80,20,0)");
+                    exhaust.addColorStop(0.45, "rgba(255,115,30,0.55)");
+                    exhaust.addColorStop(0.8, "rgba(255,215,80,0.95)");
+                    exhaust.addColorStop(1, "rgba(225,245,255,1)");
+                    context.fillStyle = exhaust;
                     context.beginPath();
-                    context.moveTo(projectile.x, projectile.y);
-                    context.lineTo(projectile.x - projectile.vx / speed * projectile.size * 1.4, projectile.y - projectile.vy / speed * projectile.size * 1.4);
+                    context.moveTo(-projectile.size * 1.8, 0);
+                    context.lineTo(-projectile.size * 0.2, -projectile.size * 0.2);
+                    context.lineTo(-projectile.size * 0.2, projectile.size * 0.2);
+                    context.closePath();
+                    context.fill();
+                    context.globalCompositeOperation = "source-over";
+                    const bodyLength = projectile.size * 1.25;
+                    const bodyRadius = Math.max(3, projectile.size * 0.18);
+                    context.fillStyle = "#8b949c";
+                    context.beginPath();
+                    context.moveTo(-bodyLength * 0.42, -bodyRadius);
+                    context.lineTo(-bodyLength * 0.62, -bodyRadius * 1.75);
+                    context.lineTo(-bodyLength * 0.2, -bodyRadius);
+                    context.lineTo(-bodyLength * 0.2, bodyRadius);
+                    context.lineTo(-bodyLength * 0.62, bodyRadius * 1.75);
+                    context.lineTo(-bodyLength * 0.42, bodyRadius);
+                    context.closePath();
+                    context.fill();
+                    const body = context.createLinearGradient(0, -bodyRadius, 0, bodyRadius);
+                    body.addColorStop(0, "#f5f7f8");
+                    body.addColorStop(0.5, "#aeb8bf");
+                    body.addColorStop(1, "#59636b");
+                    context.fillStyle = body;
+                    context.strokeStyle = "#303940";
+                    context.lineWidth = 1;
+                    context.beginPath();
+                    context.moveTo(-bodyLength * 0.48, -bodyRadius);
+                    context.lineTo(bodyLength * 0.28, -bodyRadius);
+                    context.lineTo(bodyLength * 0.58, 0);
+                    context.lineTo(bodyLength * 0.28, bodyRadius);
+                    context.lineTo(-bodyLength * 0.48, bodyRadius);
+                    context.closePath();
+                    context.fill();
                     context.stroke();
-                    this.drawSprite(context, "missile2_4x.png", projectile.x, projectile.y, projectile.angle + Math.PI / 2, projectile.size, 1);
+                    context.fillStyle = "#d94a3d";
+                    context.fillRect(bodyLength * 0.08, -bodyRadius, bodyLength * 0.12, bodyRadius * 2);
+                    context.restore();
+                    this.drawSprite(context, "missile2_4x.png", projectile.x, projectile.y, projectile.angle + Math.PI / 2, projectile.size * 1.1, 0.7, false);
                 } else if (projectile.weapon === "ion") {
+                    context.globalCompositeOperation = "lighter";
                     context.fillStyle = "rgba(55,170,255,0.35)";
                     context.beginPath();
                     context.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI * 2);
                     context.fill();
                     this.drawSprite(context, "ball_laser_2x.png", projectile.x, projectile.y, projectile.angle, projectile.size, 1, true);
                 } else {
+                    context.globalCompositeOperation = "lighter";
                     const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
                     context.strokeStyle = projectile.color;
                     context.lineWidth = projectile.size > 12 ? 3 : 2;
