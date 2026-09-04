@@ -3,7 +3,6 @@
 
     const TWO_PI = Math.PI * 2;
     const FACTIONS = ["earth", "gliese", "eridani"];
-    const SPAWN_WEIGHT_CORRECTION = { earth: 0.25, gliese: 1, eridani: 1 };
     const ship = (sprite, engine, hull, speed, turnRate, shield, shieldAttackThreshold, ai = {}) => ({
         sprite, engine, hull, speed: speed * 1000, turnRate: turnRate * Math.PI / 180 * 1000,
         shield, shieldAttackThreshold, attackRunDistance: speed * 800, ...ai
@@ -235,11 +234,11 @@
             if (!useAutoBalance || !this.settings.autoBalance || totalScore < 10) return enabled[index % enabled.length];
             const weights = this.factionSpawnWeights();
             const weightedFactions = ["earth", "eridani", "gliese"].filter((faction) => enabled.includes(faction));
-            const totalWeight = weightedFactions.reduce((total, faction) => total + Math.max(0, weights[faction]) * SPAWN_WEIGHT_CORRECTION[faction], 0);
+            const totalWeight = weightedFactions.reduce((total, faction) => total + Math.max(0, weights[faction]), 0);
             if (!totalWeight) return enabled[index % enabled.length];
             let selection = this.random.next() * totalWeight;
             for (const faction of weightedFactions) {
-                selection -= Math.max(0, weights[faction]) * SPAWN_WEIGHT_CORRECTION[faction];
+                selection -= Math.max(0, weights[faction]);
                 if (selection < 0) return faction;
             }
             return weightedFactions[weightedFactions.length - 1];
@@ -404,7 +403,7 @@
                 const offsetX = this.wrappedOffset(ship.x, candidate.x, this.width);
                 const offsetY = this.wrappedOffset(ship.y, candidate.y, this.height);
                 const distance = offsetX ** 2 + offsetY ** 2;
-                const candidatePreferred = ship.ai.preferHullDamage && candidate.shield <= 0;
+                const candidatePreferred = Boolean(ship.ai.preferHullDamage && candidate.shield <= 0);
                 const closestPreferred = Boolean(closest && ship.ai.preferHullDamage && closest.shield <= 0);
                 if ((!closestPreferred && candidatePreferred) || (candidatePreferred === closestPreferred && distance < closestDistance)) {
                     closest = candidate;

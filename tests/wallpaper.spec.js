@@ -226,22 +226,39 @@ test("ships and projectiles cross edges seamlessly and warp without the boxed bi
 test("fleet simulation moves, targets, and fires", async ({ page }) => {
     await openWallpaper(page);
     const initial = await page.evaluate(() => ({
-        x: window.pixelFleetApp.world.ships[0].x,
-        y: window.pixelFleetApp.world.ships[0].y,
+        ships: Object.fromEntries(window.pixelFleetApp.world.ships.map((ship) => [ship.id, { x: ship.x, y: ship.y }])),
         time: window.pixelFleetApp.world.time
     }));
     await page.waitForTimeout(2200);
-    const result = await page.evaluate(() => ({
-        x: window.pixelFleetApp.world.ships[0].x,
-        y: window.pixelFleetApp.world.ships[0].y,
+    const result = await page.evaluate((positions) => ({
+        stationaryClasses: [...new Set(window.pixelFleetApp.world.ships
+            .filter((ship) => ship.state === "active" && positions[ship.id] && Math.hypot(ship.x - positions[ship.id].x, ship.y - positions[ship.id].y) <= 1)
+            .map((ship) => `${ship.faction}:${ship.sprite}`))],
         time: window.pixelFleetApp.world.time,
         targets: window.pixelFleetApp.world.ships.filter((ship) => ship.targetId).length,
         activeOrHit: window.pixelFleetApp.world.projectiles.length + window.pixelFleetApp.world.effects.length
-    }));
-    expect(Math.hypot(result.x - initial.x, result.y - initial.y)).toBeGreaterThan(1);
+    }), initial.ships);
+    expect(result.stationaryClasses).toEqual([]);
     expect(result.time).toBeGreaterThan(initial.time + 1);
     expect(result.targets).toBeGreaterThan(10);
     expect(result.activeOrHit).toBeGreaterThan(0);
+});
+
+test("capital ships without hull preference acquire targets and move", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        const ship = world.ships.find((candidate) => candidate.type === "capital" && !candidate.ai.preferHullDamage);
+        const target = world.ships.find((candidate) => candidate.faction !== ship.faction && candidate.state === "active");
+        Object.assign(ship, { x: 200, y: 200, targetId: 0, retargetTimer: 0, speed: 0 });
+        Object.assign(target, { x: 700, y: 200, state: "active" });
+        world.ships = [ship, target];
+        const before = { x: ship.x, y: ship.y };
+        for (let index = 0; index < 120; index += 1) world.updateShip(ship, 1 / 60);
+        return { targetId: ship.targetId, expectedTargetId: target.id, distance: Math.hypot(ship.x - before.x, ship.y - before.y) };
+    });
+    expect(result.targetId).toBe(result.expectedTargetId);
+    expect(result.distance).toBeGreaterThan(1);
 });
 
 test("properties restart counts and no-ships mode", async ({ page }) => {

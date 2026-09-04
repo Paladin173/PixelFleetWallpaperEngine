@@ -60,11 +60,9 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
 - The APK's Earth cruiser `RANDOM` branch can select projectile enum members
   that its firing switch cannot emit. The port preserves those non-firing mount
   outcomes as `none` rather than constructing invalid projectile objects.
-- The APK score/rank transfer formula is preserved. After its ten-point
-  activation threshold, Earth spawn weight receives a 0.25 correction because
-  the reduced Canvas movement model otherwise settles near 45/28/27 despite
-  source-identical ship values. The correction measured 28/29/33 over the same
-  deterministic 90-battle sample with zero timeouts.
+- The APK score/rank transfer formula and spawn weights are preserved without
+  faction-specific correction. With capital target acquisition fixed, the
+  deterministic 90-battle sample completes without timeouts at 29/33/28.
 - Complex per-pixel hull circles and individual component hit locations are
   represented by class collision radii and aggregate shield, engine, and weapon
   health. Shield interception uses the APK radii of 64, 30, and 24.
