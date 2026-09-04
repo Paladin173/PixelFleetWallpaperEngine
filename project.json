@@ -8,27 +8,54 @@
     "type": "web",
     "general": {
         "properties": {
-                "settingscategory": {
-                    "order": 0,
-                    "text": "Settings Category",
-                    "type": "combo",
-                    "value": "display",
-                    "options": [
-                        { "label": "Display", "value": "display" },
-                        { "label": "Battle", "value": "battle" },
-                        { "label": "Environment", "value": "environment" },
-                        { "label": "Effects & Interaction", "value": "effects" },
-                        { "label": "Scoreboard", "value": "scoreboard" },
-                        { "label": "Earth Fleet", "value": "earth" },
-                        { "label": "Gliese Fleet", "value": "gliese" },
-                        { "label": "Eridani Fleet", "value": "eridani" },
-                        { "label": "Diagnostics", "value": "diagnostics" }
-                    ]
-                },
+            "settingscategory": {
+                "order": 0,
+                "text": "Settings Category",
+                "type": "combo",
+                "value": "display",
+                "options": [
+                    {
+                        "label": "Display",
+                        "value": "display"
+                    },
+                    {
+                        "label": "Battle",
+                        "value": "battle"
+                    },
+                    {
+                        "label": "Environment",
+                        "value": "environment"
+                    },
+                    {
+                        "label": "Effects & Interaction",
+                        "value": "effects"
+                    },
+                    {
+                        "label": "Scoreboard",
+                        "value": "scoreboard"
+                    },
+                    {
+                        "label": "Earth Fleet",
+                        "value": "earth"
+                    },
+                    {
+                        "label": "Gliese Fleet",
+                        "value": "gliese"
+                    },
+                    {
+                        "label": "Eridani Fleet",
+                        "value": "eridani"
+                    },
+                    {
+                        "label": "Diagnostics",
+                        "value": "diagnostics"
+                    }
+                ]
+            },
             "renderquality": {
-                    "order": 10,
-                    "condition": "settingscategory.value === 'display'",
-                    "text": "Render Quality",
+                "order": 10,
+                "condition": "settingscategory.value === 'display'",
+                "text": "Render Quality",
                 "type": "combo",
                 "value": "auto",
                 "options": [
