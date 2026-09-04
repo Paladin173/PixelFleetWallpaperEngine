@@ -273,8 +273,8 @@
             if (!definitions.length) return false;
             const definition = this.random.pick(definitions);
             const originAngle = this.factionOriginAngles[faction];
-            const radius = Math.min(this.width, this.height) * 0.32;
-            const spread = Math.min(this.width, this.height) * 0.08;
+            const radius = Math.min(this.width, this.height) * 0.38;
+            const spread = Math.min(this.width, this.height) * 0.15;
             const x = this.width / 2 + Math.cos(originAngle) * radius + this.random.range(-spread, spread);
             const y = this.height / 2 + Math.sin(originAngle) * radius + this.random.range(-spread, spread);
             const batteries = definition.randomWeapons
@@ -337,6 +337,7 @@
             }
             if (ship.state === "warping") {
                 const direction = Math.atan2(ship.y - this.height / 2, ship.x - this.width / 2);
+                ship.angle = direction;
                 ship.speed = Math.min(ship.maxSpeed * 8, ship.speed + ship.maxSpeed * delta * 3);
                 ship.x += Math.cos(direction) * ship.speed * delta;
                 ship.y += Math.sin(direction) * ship.speed * delta;
@@ -390,13 +391,13 @@
                 const targetFromAnchorY = this.wrappedOffset(escortAnchor.y, target.y, this.height);
                 const threatDistance = Math.hypot(targetFromAnchorX, targetFromAnchorY);
                 const escortDistance = Math.hypot(anchorX, anchorY);
-                if (threatDistance > 340 || escortDistance > 220) {
+                if (threatDistance > 420 || escortDistance > 300) {
                     const slotAngle = ship.id * 2.399963229728653;
-                    navigationX = anchorX + Math.cos(slotAngle) * 90;
-                    navigationY = anchorY + Math.sin(slotAngle) * 90;
-                    idealRange = 30;
+                    navigationX = anchorX + Math.cos(slotAngle) * 150;
+                    navigationY = anchorY + Math.sin(slotAngle) * 150;
+                    idealRange = 45;
                 } else {
-                    idealRange = 120;
+                    idealRange = 150;
                 }
             } else if (ship.role === "artillery") {
                 idealRange = 360;
@@ -417,14 +418,14 @@
             const navigationScale = Math.min(1, 160 / navigationGoalDistance);
             navigationX *= navigationScale;
             navigationY *= navigationScale;
-            const separationRange = ship.type === "capital" ? 120 : 65;
+            const separationRange = ship.type === "capital" ? 190 : ship.type === "bomber" ? 110 : 95;
             for (const ally of this.ships) {
                 if (ally === ship || ally.faction !== ship.faction || !["active", "disabled"].includes(ally.state)) continue;
                 const allyX = this.wrappedOffset(ship.x, ally.x, this.width);
                 const allyY = this.wrappedOffset(ship.y, ally.y, this.height);
                 const allyDistance = Math.hypot(allyX, allyY);
                 if (allyDistance <= 0 || allyDistance >= separationRange) continue;
-                const separation = (separationRange - allyDistance) * 3 / allyDistance;
+                const separation = (separationRange - allyDistance) * 4 / allyDistance;
                 navigationX -= allyX * separation;
                 navigationY -= allyY * separation;
             }

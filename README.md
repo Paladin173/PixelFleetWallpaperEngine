@@ -17,9 +17,12 @@ their target's shields collapse. Class-specific shield capacities, collapse
 delays, recharge rates, and weapon-specific shield and hull damage are preserved.
 Fleet roles keep battles spatially readable: missile capitals maintain standoff
 range and launch in any direction, fighters screen allied capitals instead of
-chasing distant contacts, and nearby allies separate rather than stacking.
-Paired hull lights identify each faction at a glance: Earth uses white, Gliese
-uses red, and Eridani uses blue.
+chasing distant contacts, and broader spawn formations, escort stations, and
+collision avoidance spread ships across the available battlefield. Ships and
+weapons wrap continuously through opposite battlefield edges. Hull centerlines,
+wing bars, and nose chevrons identify each faction at a glance: Earth uses white,
+Gliese uses red, and Eridani uses blue. Surviving ships face their outbound
+movement direction before accelerating into warp.
 
 Battles support the original 70-ship ceiling. Winning factions earn persistent
 scores, surviving ships warp out, and a new system is generated. Lifetime spawn,

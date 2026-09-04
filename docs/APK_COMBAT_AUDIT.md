@@ -69,17 +69,19 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
   requirement; the Android sector removes out-of-bounds projectiles.
 - Fleet movement adds desktop role tactics around the APK parameters: missile
   capitals maintain standoff range and can launch guided weapons independently
-  of heading, fighters defend and return to allied capitals, and nearby allies
-  separate to avoid visually stacked formations.
-- Desktop hull accents identify Earth in white, Gliese in red, and Eridani in
-  blue while preserving the original ship sprites beneath them.
+  of heading, fighters defend and return to wider allied-capital stations, and
+  broader spawn dispersion plus class-scaled avoidance reduces stacked formations.
+- Desktop hull centerlines, wing bars, and nose chevrons identify Earth in white,
+  Gliese in red, and Eridani in blue while preserving the original ship sprites.
+- Active ships, projectiles, debris, and asteroids wrap across opposite world
+  edges. Surviving ships align their hull heading with the outbound warp vector.
 - The APK's Earth cruiser `RANDOM` branch can select projectile enum members
   that its firing switch cannot emit. The port preserves those non-firing mount
   outcomes as `none` rather than constructing invalid projectile objects.
 - The APK score/rank transfer formula and spawn weights are preserved without
   faction-specific correction. With capital target acquisition fixed, the
   deterministic 120-battle role-aware sample completes without timeouts at
-  39/40/41.
+  40/41/39.
 - Complex per-pixel hull circles and individual component hit locations are
   represented by class collision radii and aggregate shield, engine, and weapon
   health.

@@ -83,21 +83,32 @@ test("default scene renders the original starfield and all fleet classes", async
         }
         const factionMarkingColors = [];
         const originalFillRect = app.renderer.context.fillRect;
+        const originalFill = app.renderer.context.fill;
+        let factionMarkingRectangles = 0;
+        let factionMarkingChevrons = 0;
         app.renderer.context.fillRect = function (...args) {
             factionMarkingColors.push(this.fillStyle);
+            factionMarkingRectangles += 1;
             return originalFillRect.apply(this, args);
+        };
+        app.renderer.context.fill = function (...args) {
+            factionMarkingChevrons += 1;
+            return originalFill.apply(this, args);
         };
         for (const faction of ["earth", "gliese", "eridani"]) {
             app.renderer.drawFactionMarkings(app.renderer.context, { faction, radius: 20, angle: 0 }, 40, 40, 1);
         }
         app.renderer.context.fillRect = originalFillRect;
+        app.renderer.context.fill = originalFill;
         return {
             litPixels,
             shipCount: app.world.ships.length,
             types: [...new Set(app.world.ships.map((ship) => ship.type))],
             factions: [...new Set(app.world.ships.map((ship) => ship.faction))],
             loadedAssets: app.renderer.images.size,
-            factionMarkingColors: [...new Set(factionMarkingColors)]
+            factionMarkingColors: [...new Set(factionMarkingColors)],
+            factionMarkingRectangles,
+            factionMarkingChevrons
         };
     });
     expect(state.litPixels).toBeGreaterThan(1000);
@@ -106,6 +117,8 @@ test("default scene renders the original starfield and all fleet classes", async
     expect(state.factions.sort()).toEqual(["earth", "eridani", "gliese"]);
     expect(state.loadedAssets).toBe(44);
     expect(state.factionMarkingColors).toEqual(["#f4f7fb", "#ff4138", "#359dff"]);
+    expect(state.factionMarkingRectangles).toBe(9);
+    expect(state.factionMarkingChevrons).toBe(3);
 });
 
 test("factions start equidistant with balanced durability and varied battle seeds", async ({ page }) => {
@@ -127,11 +140,16 @@ test("factions start equidistant with balanced durability and varied battle seed
             [...new Set(world.ships.filter((ship) => ship.faction === "earth" && ship.type === type).map((ship) => ship.maxHealth))]
         ]));
         const firstLayout = world.ships.map((ship) => [ship.sprite, ship.x, ship.y]);
+        const formationSpans = factions.map((faction) => {
+            const ships = world.ships.filter((ship) => ship.faction === faction);
+            return Math.max(...ships.flatMap((left) => ships.map((right) => Math.hypot(left.x - right.x, left.y - right.y))));
+        });
         world.restart();
         const secondLayout = world.ships.map((ship) => [ship.sprite, ship.x, ship.y]);
-        return { distances, earthHealth, firstLayout, secondLayout };
+        return { distances, earthHealth, formationSpans, firstLayout, secondLayout };
     });
     expect(Math.max(...state.distances) / Math.min(...state.distances)).toBeLessThan(1.25);
+    expect(Math.min(...state.formationSpans)).toBeGreaterThan(200);
     expect(state.earthHealth).toEqual({ capital: [700], fighter: [55], bomber: [100] });
     expect(state.secondLayout).not.toEqual(state.firstLayout);
 });
@@ -192,6 +210,17 @@ test("ships and projectiles cross edges seamlessly and warp without the boxed bi
         const projectileX = world.projectiles[0].x;
 
         ship.state = "active";
+        ship.x = world.width - 1;
+        ship.y = world.height / 2;
+        ship.angle = 0;
+        ship.speed = ship.maxSpeed;
+        ship.targetId = target.id;
+        ship.retargetTimer = 10;
+        ship.systems.weapons = 0;
+        world.updateShip(ship, 0.1);
+        const wrappedShipX = ship.x;
+
+        ship.state = "active";
         ship.health = ship.maxHealth;
         ship.shield = 0;
         ship.x = world.width - 4;
@@ -218,21 +247,29 @@ test("ships and projectiles cross edges seamlessly and warp without the boxed bi
         renderer.drawSprite = (_context, name) => spriteNames.push(name);
         renderer.drawWarp = () => { warpFlares += 1; };
         ship.state = "warping";
+        ship.x = world.width * 0.8;
+        ship.y = world.height * 0.2;
+        ship.angle = 0;
+        world.updateShip(ship, 0.1);
+        const warpAngle = ship.angle;
+        const expectedWarpAngle = Math.atan2(ship.y - world.height / 2, ship.x - world.width / 2);
         renderer.drawShip(renderer.context, ship, world);
         renderer.drawSprite = originalDrawSprite;
         renderer.drawWarp = originalDrawWarp;
-        return { selectedAcrossEdge, shortestOffset, beamTargetX, targetX: target.x, worldWidth: world.width, projectileX, asteroidHitAcrossEdge, destroyedAcrossEdge, positions, spriteNames, warpFlares };
+        return { selectedAcrossEdge, shortestOffset, beamTargetX, targetX: target.x, worldWidth: world.width, projectileX, wrappedShipX, asteroidHitAcrossEdge, destroyedAcrossEdge, positions, spriteNames, warpFlares, warpAngle, expectedWarpAngle };
     });
     expect(result.selectedAcrossEdge).toBe(true);
     expect(result.shortestOffset).toBe(10);
     expect(result.beamTargetX).toBe(result.worldWidth + result.targetX);
     expect(result.projectileX).toBe(3);
+    expect(result.wrappedShipX).toBeLessThan(20);
     expect(result.asteroidHitAcrossEdge).toBe(true);
     expect(result.destroyedAcrossEdge).toBe(true);
     expect(result.positions.some(([x]) => x > 1)).toBe(true);
     expect(result.positions.some(([x]) => x === result.beamTargetX)).toBe(true);
     expect(result.spriteNames).not.toContain("warp.png");
     expect(result.warpFlares).toBe(1);
+    expect(result.warpAngle).toBeCloseTo(result.expectedWarpAngle, 10);
 });
 
 test("fleet simulation moves, targets, and fires", async ({ page }) => {

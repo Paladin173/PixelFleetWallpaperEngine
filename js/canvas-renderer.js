@@ -130,17 +130,25 @@
         drawFactionMarkings(context, ship, x, y, alpha) {
             const color = FACTION_COLORS[ship.faction];
             if (!color) return;
-            const width = Math.max(5, ship.radius * 0.58);
+            const width = Math.max(7, ship.radius * 0.8);
+            const length = Math.max(8, ship.radius * 1.05);
             const height = Math.max(2, Math.min(4, ship.radius * 0.16));
-            const offset = ship.radius * 0.62;
+            const offset = ship.radius * 0.68;
             context.save();
             context.translate(x, y);
             context.rotate(ship.angle);
             context.globalCompositeOperation = "lighter";
             context.globalAlpha = alpha * 0.9;
             context.fillStyle = color;
+            context.fillRect(-length * 0.45, -height / 2, length, height);
             context.fillRect(-width / 2, -offset - height / 2, width, height);
             context.fillRect(-width / 2, offset - height / 2, width, height);
+            context.beginPath();
+            context.moveTo(ship.radius * 0.9, 0);
+            context.lineTo(ship.radius * 0.55, -height * 1.5);
+            context.lineTo(ship.radius * 0.55, height * 1.5);
+            context.closePath();
+            context.fill();
             context.restore();
         }
 
