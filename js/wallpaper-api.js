@@ -77,56 +77,56 @@
                 const property = properties[propertyName] !== undefined ? properties[propertyName] : properties[legacyName];
                 if (property !== undefined) settings[settingName] = transform(property, defaults[settingName]);
             };
-            apply("a01renderquality", "renderquality", "renderQuality", (property, fallback) => String(value(property, fallback)));
-            apply("a02zoom", "zoom", "zoom", numberValue);
-            apply("a03brightness", "brightness", "brightness", numberValue);
-            apply("b01simulationmode", "simulationmode", "simulationMode", (property, fallback) => String(value(property, fallback)));
-            apply("b02capitalships", "capitalships", "capitalShips", numberValue);
-            apply("b03fighters", "fighters", "fighters", numberValue);
-            apply("b04bombers", "bombers", "bombers", numberValue);
-            apply("c01asteroids", "asteroids", "asteroids", numberValue);
-            apply("c02stars", "stars", "stars", (property, fallback) => String(value(property, fallback)));
-            apply("c03spacedust", "spacedust", "spaceDust", (property, fallback) => String(value(property, fallback)));
-            apply("c04planets", "planets", "planets", (property, fallback) => String(value(property, fallback)));
-            apply("c05asteroidbelt", "asteroidbelt", "asteroidBelt", (property, fallback) => String(value(property, fallback)));
-            apply("d01debris", "debris", "debris", booleanValue);
-            apply("d02slowmotion", "slowmotion", "slowMotion", booleanValue);
-            apply("d03autobalance", "autobalance", "autoBalance", booleanValue);
-            apply("d04interaction", "interaction", "interaction", booleanValue);
-            apply("e01showscore", "showscore", "showScore", booleanValue);
-            apply("e02scoreorientation", "scoreorientation", "scoreOrientation", (property, fallback) => String(value(property, fallback)));
-            apply("e03scorehorizontaloffset", "scorehorizontaloffset", "scoreHorizontalOffset", numberValue);
-            apply("e04scoreverticaloffset", "scoreverticaloffset", "scoreVerticalOffset", numberValue);
-            apply("e05scoresize", "scoresize", "scoreSize", numberValue);
-            apply("e06scoreopacity", "scoreopacity", "scoreOpacity", numberValue);
-            apply("e07scorecolor", "scorecolor", "scoreColor", (property, fallback) => String(value(property, fallback)));
-            apply("e08scorebackground", "scorebackground", "scoreBackground", booleanValue);
-            apply("e09scorebackgroundopacity", "scorebackgroundopacity", "scoreBackgroundOpacity", numberValue);
-            const resetProperty = properties.e10resetstats !== undefined ? properties.e10resetstats : properties.resetstats;
+            apply("renderquality", "a01renderquality", "renderQuality", (property, fallback) => String(value(property, fallback)));
+            apply("zoom", "a02zoom", "zoom", numberValue);
+            apply("brightness", "a03brightness", "brightness", numberValue);
+            apply("simulationmode", "b01simulationmode", "simulationMode", (property, fallback) => String(value(property, fallback)));
+            apply("capitalships", "b02capitalships", "capitalShips", numberValue);
+            apply("fighters", "b03fighters", "fighters", numberValue);
+            apply("bombers", "b04bombers", "bombers", numberValue);
+            apply("asteroids", "c01asteroids", "asteroids", numberValue);
+            apply("stars", "c02stars", "stars", (property, fallback) => String(value(property, fallback)));
+            apply("spacedust", "c03spacedust", "spaceDust", (property, fallback) => String(value(property, fallback)));
+            apply("planets", "c04planets", "planets", (property, fallback) => String(value(property, fallback)));
+            apply("asteroidbelt", "c05asteroidbelt", "asteroidBelt", (property, fallback) => String(value(property, fallback)));
+            apply("debris", "d01debris", "debris", booleanValue);
+            apply("slowmotion", "d02slowmotion", "slowMotion", booleanValue);
+            apply("autobalance", "d03autobalance", "autoBalance", booleanValue);
+            apply("interaction", "d04interaction", "interaction", booleanValue);
+            apply("showscore", "e01showscore", "showScore", booleanValue);
+            apply("scoreorientation", "e02scoreorientation", "scoreOrientation", (property, fallback) => String(value(property, fallback)));
+            apply("scorehorizontaloffset", "e03scorehorizontaloffset", "scoreHorizontalOffset", numberValue);
+            apply("scoreverticaloffset", "e04scoreverticaloffset", "scoreVerticalOffset", numberValue);
+            apply("scoresize", "e05scoresize", "scoreSize", numberValue);
+            apply("scoreopacity", "e06scoreopacity", "scoreOpacity", numberValue);
+            apply("scorecolor", "e07scorecolor", "scoreColor", (property, fallback) => String(value(property, fallback)));
+            apply("scorebackground", "e08scorebackground", "scoreBackground", booleanValue);
+            apply("scorebackgroundopacity", "e09scorebackgroundopacity", "scoreBackgroundOpacity", numberValue);
+            const resetProperty = properties.resetstats !== undefined ? properties.resetstats : properties.e10resetstats;
             if (resetProperty !== undefined) {
                 const shouldReset = booleanValue(resetProperty, defaults.resetStats);
                 if (shouldReset && !settings.resetStats && window.pixelFleetApp) window.pixelFleetApp.clearStats();
                 settings.resetStats = shouldReset;
             }
             const booleanProperties = {
-                f01spawnearthcruiser: ["spawnearthcruiser", "spawnEarthCruiser"],
-                f02spawnearthmissilefrigate: ["spawnearthmissilefrigate", "spawnEarthMissileFrigate"],
-                f03spawnearthfighter: ["spawnearthfighter", "spawnEarthFighter"],
-                f04spawnearthbomber: ["spawnearthbomber", "spawnEarthBomber"],
-                g01spawngliesecorvette: ["spawngliesecorvette", "spawnGlieseCorvette"],
-                g02spawngliesedreadnaught: ["spawngliesedreadnaught", "spawnGlieseDreadnaught"],
-                g03spawngliesefighter: ["spawngliesefighter", "spawnGlieseFighter"],
-                g04spawngliesebomber: ["spawngliesebomber", "spawnGlieseBomber"],
-                h01spawneridanigunboat: ["spawneridanigunboat", "spawnEridaniGunboat"],
-                h02spawneridanidestroyer: ["spawneridanidestroyer", "spawnEridaniDestroyer"],
-                h03spawneridanifighter: ["spawneridanifighter", "spawnEridaniFighter"],
-                h04spawneridanibomber: ["spawneridanibomber", "spawnEridaniBomber"],
-                i01showhitboxes: ["showhitboxes", "showHitboxes"],
-                i02showhpbars: ["showhpbars", "showHpBars"],
-                i03showshipmovement: ["showshipmovement", "showShipMovement"],
-                i04showshipstate: ["showshipstate", "showShipState"],
-                i05showprojectiletargets: ["showprojectiletargets", "showProjectileTargets"],
-                i06showfps: ["showfps", "showFps"]
+                spawnearthcruiser: ["f01spawnearthcruiser", "spawnEarthCruiser"],
+                spawnearthmissilefrigate: ["f02spawnearthmissilefrigate", "spawnEarthMissileFrigate"],
+                spawnearthfighter: ["f03spawnearthfighter", "spawnEarthFighter"],
+                spawnearthbomber: ["f04spawnearthbomber", "spawnEarthBomber"],
+                spawngliesecorvette: ["g01spawngliesecorvette", "spawnGlieseCorvette"],
+                spawngliesedreadnaught: ["g02spawngliesedreadnaught", "spawnGlieseDreadnaught"],
+                spawngliesefighter: ["g03spawngliesefighter", "spawnGlieseFighter"],
+                spawngliesebomber: ["g04spawngliesebomber", "spawnGlieseBomber"],
+                spawneridanigunboat: ["h01spawneridanigunboat", "spawnEridaniGunboat"],
+                spawneridanidestroyer: ["h02spawneridanidestroyer", "spawnEridaniDestroyer"],
+                spawneridanifighter: ["h03spawneridanifighter", "spawnEridaniFighter"],
+                spawneridanibomber: ["h04spawneridanibomber", "spawnEridaniBomber"],
+                showhitboxes: ["i01showhitboxes", "showHitboxes"],
+                showhpbars: ["i02showhpbars", "showHpBars"],
+                showshipmovement: ["i03showshipmovement", "showShipMovement"],
+                showshipstate: ["i04showshipstate", "showShipState"],
+                showprojectiletargets: ["i05showprojectiletargets", "showProjectileTargets"],
+                showfps: ["i06showfps", "showFps"]
             };
             for (const [propertyName, [legacyName, settingName]] of Object.entries(booleanProperties)) {
                 const property = properties[propertyName] !== undefined ? properties[propertyName] : properties[legacyName];
