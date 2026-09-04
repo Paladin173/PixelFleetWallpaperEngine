@@ -81,12 +81,23 @@ test("default scene renders the original starfield and all fleet classes", async
         for (let index = 0; index < pixels.length; index += 64) {
             if (pixels[index] || pixels[index + 1] || pixels[index + 2]) litPixels += 1;
         }
+        const factionMarkingColors = [];
+        const originalFillRect = app.renderer.context.fillRect;
+        app.renderer.context.fillRect = function (...args) {
+            factionMarkingColors.push(this.fillStyle);
+            return originalFillRect.apply(this, args);
+        };
+        for (const faction of ["earth", "gliese", "eridani"]) {
+            app.renderer.drawFactionMarkings(app.renderer.context, { faction, radius: 20, angle: 0 }, 40, 40, 1);
+        }
+        app.renderer.context.fillRect = originalFillRect;
         return {
             litPixels,
             shipCount: app.world.ships.length,
             types: [...new Set(app.world.ships.map((ship) => ship.type))],
             factions: [...new Set(app.world.ships.map((ship) => ship.faction))],
-            loadedAssets: app.renderer.images.size
+            loadedAssets: app.renderer.images.size,
+            factionMarkingColors: [...new Set(factionMarkingColors)]
         };
     });
     expect(state.litPixels).toBeGreaterThan(1000);
@@ -94,6 +105,7 @@ test("default scene renders the original starfield and all fleet classes", async
     expect(state.types.sort()).toEqual(["bomber", "capital", "fighter"]);
     expect(state.factions.sort()).toEqual(["earth", "eridani", "gliese"]);
     expect(state.loadedAssets).toBe(44);
+    expect(state.factionMarkingColors).toEqual(["#f4f7fb", "#ff4138", "#359dff"]);
 });
 
 test("factions start equidistant with balanced durability and varied battle seeds", async ({ page }) => {
@@ -229,7 +241,10 @@ test("fleet simulation moves, targets, and fires", async ({ page }) => {
         ships: Object.fromEntries(window.pixelFleetApp.world.ships.map((ship) => [ship.id, { x: ship.x, y: ship.y }])),
         time: window.pixelFleetApp.world.time
     }));
-    await page.waitForTimeout(2200);
+    await page.waitForFunction((initialTime) => {
+        const world = window.pixelFleetApp.world;
+        return world.time > initialTime + 1 && world.projectiles.length + world.effects.length > 0;
+    }, initial.time, { timeout: 6000 });
     const result = await page.evaluate((positions) => ({
         stationaryClasses: [...new Set(window.pixelFleetApp.world.ships
             .filter((ship) => ship.state === "active" && positions[ship.id] && Math.hypot(ship.x - positions[ship.id].x, ship.y - positions[ship.id].y) <= 1)
@@ -259,6 +274,69 @@ test("capital ships without hull preference acquire targets and move", async ({ 
     });
     expect(result.targetId).toBe(result.expectedTargetId);
     expect(result.distance).toBeGreaterThan(1);
+});
+
+test("fleet roles preserve artillery standoff, fighter escort, and allied spacing", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        const artillery = world.ships.find((ship) => ship.sprite === "earth_missile_cruiser_4x.png");
+        const artilleryTarget = world.ships.find((ship) => ship.faction === "gliese" && ship.type === "capital");
+        Object.assign(artillery, { x: 500, y: 200, angle: 0, speed: 0, targetId: artilleryTarget.id, retargetTimer: 10, aiState: "engaging" });
+        Object.assign(artilleryTarget, { x: 350, y: 200, state: "active" });
+        artillery.weaponTimers.fill(0);
+        world.ships = [artillery, artilleryTarget];
+        world.projectiles = [];
+        world.updateShip(artillery, 0.1);
+        const artilleryResult = {
+            role: artillery.role,
+            movedAway: artillery.x > 500,
+            firedBackward: world.projectiles.length > 0 && world.projectiles.every((projectile) => projectile.vx < 0)
+        };
+
+        world.restart();
+        const anchor = world.ships.find((ship) => ship.faction === "earth" && ship.type === "capital");
+        const fighter = world.ships.find((ship) => ship.faction === "earth" && ship.type === "fighter");
+        const threat = world.ships.find((ship) => ship.faction === "gliese" && ship.type === "capital");
+        const decoy = world.ships.find((ship) => ship.faction === "eridani" && ship.type === "capital");
+        Object.assign(anchor, { x: 500, y: 450, state: "active" });
+        Object.assign(fighter, { x: 150, y: 450, angle: 0, speed: 0, targetId: 0, retargetTimer: 0, aiState: "engaging" });
+        Object.assign(threat, { x: 600, y: 450, state: "active", shield: threat.maxShield });
+        Object.assign(decoy, { x: 140, y: 450, state: "active", shield: decoy.maxShield });
+        world.ships = [anchor, fighter, threat, decoy];
+        const escortDistanceBefore = Math.abs(world.wrappedOffset(fighter.x, anchor.x, world.width));
+        world.updateShip(fighter, 0.5);
+        const escortResult = {
+            role: fighter.role,
+            targetId: fighter.targetId,
+            expectedTargetId: threat.id,
+            returnedToAnchor: Math.abs(world.wrappedOffset(fighter.x, anchor.x, world.width)) < escortDistanceBefore
+        };
+
+        Object.assign(decoy, {
+            x: 100, y: 300, angle: 0, speed: 0, role: "line", targetId: threat.id,
+            retargetTimer: 10, aiState: "engaging", ai: { ...decoy.ai, keepDistance: true, straightAttackPath: false }
+        });
+        Object.assign(threat, { x: 700, y: 300, state: "active" });
+        world.ships = [decoy, threat];
+        world.updateShip(decoy, 0.5);
+        const longRangePursuit = decoy.speed > 0;
+
+        const wingLeft = anchor;
+        const wingRight = { ...threat, id: 9001, faction: "earth", x: 550, y: 450, angle: 0, speed: 0, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" };
+        Object.assign(wingLeft, { x: 500, y: 450, angle: 0, speed: 0, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" });
+        Object.assign(decoy, { x: 1000, y: 450 });
+        world.ships = [wingLeft, wingRight, decoy];
+        const spacingBefore = Math.abs(wingRight.x - wingLeft.x);
+        world.updateShip(wingLeft, 0.5);
+        world.updateShip(wingRight, 0.5);
+        const spacingAfter = Math.abs(wingRight.x - wingLeft.x);
+        return { artilleryResult, escortResult, longRangePursuit, spacingBefore, spacingAfter };
+    });
+    expect(result.artilleryResult).toEqual({ role: "artillery", movedAway: true, firedBackward: true });
+    expect(result.escortResult).toEqual({ role: "escort", targetId: result.escortResult.expectedTargetId, expectedTargetId: result.escortResult.expectedTargetId, returnedToAnchor: true });
+    expect(result.longRangePursuit).toBe(true);
+    expect(result.spacingAfter).toBeGreaterThan(result.spacingBefore);
 });
 
 test("properties restart counts and no-ships mode", async ({ page }) => {
@@ -603,7 +681,8 @@ test("all APK ship classes use their distinct weapon batteries and shields", asy
         target.shield = 0;
         target.health = 1000;
         target.systems.shields = 100;
-        const systemsBefore = world.stats.factions.earth.systemsDestroyed;
+        const attackerSystemsBefore = world.stats.factions.earth.systemsDestroyed;
+        const victimSystemsBefore = world.stats.factions[target.faction].systemsDestroyed;
         const originalNext = world.random.next;
         const originalPick = world.random.pick;
         world.random.next = () => 0;
@@ -611,7 +690,11 @@ test("all APK ship classes use their distinct weapon batteries and shields", asy
         world.damageShip(target, 150, "earth");
         world.random.next = originalNext;
         world.random.pick = originalPick;
-        const subsystemDestroyed = world.stats.factions.earth.systemsDestroyed > systemsBefore && target.systems.shields === 0;
+        const subsystemDestroyed = {
+            attacker: world.stats.factions.earth.systemsDestroyed - attackerSystemsBefore,
+            victim: world.stats.factions[target.faction].systemsDestroyed - victimSystemsBefore,
+            shieldHealth: target.systems.shields
+        };
 
         target.shield = 100;
         target.health = 100;
@@ -628,12 +711,21 @@ test("all APK ship classes use their distinct weapon batteries and shields", asy
         const shieldCollapse = { shield: target.shield, health: target.health, delay: target.shieldRechargeDelay };
 
         const asteroid = world.asteroids.find((item) => !item.belt);
-        asteroid.x = target.x / world.width;
+        asteroid.size = 10;
+        target.shield = 100;
+        target.health = 100;
+        asteroid.x = (target.x + target.radius + 10) / world.width;
         asteroid.y = target.y / world.height;
         asteroid.hitTimer = 0;
-        const durabilityBefore = target.health + target.shield;
         world.updateBackground(1 / 60);
-        return { weapons, parameters, earthCruiserWeapons, subsystemDestroyed, ionDamage, missileHullDamage, shieldCollapse, asteroidDamage: target.health + target.shield < durabilityBefore };
+        const asteroidShieldDamage = { shield: target.shield, health: target.health };
+        target.shield = 0;
+        target.health = 100;
+        asteroid.x = target.x / world.width;
+        asteroid.hitTimer = 0;
+        world.updateBackground(1 / 60);
+        const asteroidHullDamage = 100 - target.health;
+        return { weapons, parameters, earthCruiserWeapons, subsystemDestroyed, ionDamage, missileHullDamage, shieldCollapse, asteroidShieldDamage, asteroidHullDamage };
     });
     expect(result.weapons).toEqual({
         earthCruiser: { beam: 1, laser: 4 },
@@ -672,12 +764,13 @@ test("all APK ship classes use their distinct weapon batteries and shields", asy
         eridaniBomber: { hull: 75, shield: 60, speed: 80, turnRate: 0.698132, shieldAttackThreshold: 0.5, keepDistance: false, straightAttackPath: false, attackRuns: false, weapons: [weapon("ion", 1, 3, 0.05, "turret", "laser", 5, 0.55)] }
     });
     expect(result).toMatchObject({
-        subsystemDestroyed: true,
+        subsystemDestroyed: { attacker: 0, victim: 1, shieldHealth: 0 },
         ionDamage: { shield: 20, hull: 0 },
         missileHullDamage: 20,
         shieldCollapse: { shield: 0, health: 100, delay: 3 },
-        asteroidDamage: true
+        asteroidShieldDamage: { shield: 93, health: 100 }
     });
+    expect(result.asteroidHullDamage).toBeCloseTo(8.4, 5);
 });
 
 test("APK projectile guidance, collision, burst, and ion disable semantics are preserved", async ({ page }) => {
@@ -698,6 +791,26 @@ test("APK projectile guidance, collision, burst, and ion disable semantics are p
         }];
         world.updateProjectiles(0);
         const firstContact = { blocker: blocker.health, intended: intended.health };
+
+        blocker.shield = 100;
+        world.projectiles = [{
+            x: blocker.x + blocker.radius + 10, y: blocker.y, vx: 0, vy: 0, angle: 0, targetId: blocker.id,
+            faction: "earth", damage: 5, shieldDamage: 1, hullDamage: 1,
+            life: 1, missile: false, weapon: "laser", color: "#fff"
+        }];
+        world.updateProjectiles(0);
+        const shieldShell = { shield: blocker.shield, projectiles: world.projectiles.length };
+
+        blocker.state = "disabled";
+        blocker.health = 100;
+        world.projectiles = [{
+            x: blocker.x, y: blocker.y, vx: 0, vy: 0, angle: 0, targetId: blocker.id,
+            faction: "earth", damage: 5, shieldDamage: 1, hullDamage: 1,
+            life: 1, missile: false, weapon: "laser", color: "#fff"
+        }];
+        world.updateProjectiles(0);
+        const disabledHit = { shield: blocker.shield, health: blocker.health };
+        blocker.state = "active";
 
         world.projectiles = [{
             x: 110, y: 100, vx: 100, vy: 0, angle: 0, targetId: -1,
@@ -730,9 +843,11 @@ test("APK projectile guidance, collision, burst, and ion disable semantics are p
             burstShots.push(world.projectiles.length);
             if (shot < 4) bomber.weaponTimers[0] = 0;
         }
-        return { firstContact, reacquiredTarget, expectedReacquiredTarget: blocker.id, disabled, recovered, burstShots, burstCooldown: bomber.weaponTimers[0] };
+        return { firstContact, shieldShell, disabledHit, reacquiredTarget, expectedReacquiredTarget: blocker.id, disabled, recovered, burstShots, burstCooldown: bomber.weaponTimers[0] };
     });
     expect(result.firstContact).toEqual({ blocker: 95, intended: 100 });
+    expect(result.shieldShell).toEqual({ shield: 95, projectiles: 0 });
+    expect(result.disabledHit).toEqual({ shield: 95, health: 95 });
     expect(result.reacquiredTarget).toBe(result.expectedReacquiredTarget);
     expect(result.disabled).toEqual({ state: "disabled", timer: 5 });
     expect(result.recovered).toEqual({ state: "active", ionIntegrity: 100 });
@@ -740,14 +855,60 @@ test("APK projectile guidance, collision, burst, and ion disable semantics are p
     expect(result.burstCooldown).toBe(0.55);
 });
 
+test("APK explosions and ship debris damage nearby ships", async ({ page }) => {
+    await openWallpaper(page);
+    const result = await page.evaluate(() => {
+        const world = window.pixelFleetApp.world;
+        const source = world.ships.find((ship) => ship.faction === "earth" && ship.type === "capital");
+        const enemy = world.ships.find((ship) => ship.faction === "gliese" && ship.type === "capital");
+        const friendly = world.ships.find((ship) => ship.faction === "earth" && ship.id !== source.id);
+        Object.assign(source, { x: 300, y: 300, state: "active" });
+        Object.assign(enemy, { x: 380, y: 300, state: "active", shield: 0, health: 500, maxHealth: 500 });
+        Object.assign(friendly, { x: 360, y: 300, state: "active", shield: 0, health: 500, maxHealth: 500 });
+        world.ships = [source, enemy, friendly];
+        world.effects = [];
+        world.destroyShip(source);
+        world.updateShip(source, 0.75);
+        const explosion = { enemyHealth: enemy.health, friendlyHealth: friendly.health };
+
+        enemy.shield = 100;
+        enemy.health = 500;
+        world.effects = [{
+            kind: "debris", x: enemy.x + enemy.radius + 10, y: enemy.y, age: 0, life: 5,
+            size: 8, vx: 0, vy: 0, angle: 0, spin: 0, sprite: "ship_debris_1.png"
+        }];
+        world.updateEffects(0);
+        return { explosion, debris: { shield: enemy.shield, health: enemy.health, remaining: world.effects.length } };
+    });
+    expect(result.explosion).toEqual({ enemyHealth: 308, friendlyHealth: 500 });
+    expect(result.debris).toEqual({ shield: 95, health: 500, remaining: 0 });
+});
+
 test("Free for All targets same-faction ships and suppresses the score overlay", async ({ page }) => {
     await openWallpaper(page);
     const result = await page.evaluate(() => {
         window.wallpaperPropertyListener.applyUserProperties({ simulationmode: { value: "freeforall" }, showscore: { value: true } });
         const app = window.pixelFleetApp;
-        const earthShips = app.world.ships.filter((ship) => ship.faction === "earth").slice(0, 2);
+        const earthShips = app.world.ships.filter((ship) => ship.faction === "earth").slice(0, 3);
+        Object.assign(earthShips[0], { x: 100, y: 100, state: "active" });
+        Object.assign(earthShips[1], { x: 300, y: 100, state: "active", shield: 0, health: 100 });
+        Object.assign(earthShips[2], { x: 700, y: 100, state: "active" });
         app.world.ships = earthShips;
         const target = app.world.findTarget(earthShips[0]);
+        app.world.projectiles = [{
+            x: earthShips[1].x, y: earthShips[1].y, vx: 0, vy: 0, angle: 0, targetId: earthShips[1].id,
+            faction: "earth", damage: 5, shieldDamage: 1, hullDamage: 1,
+            life: 1, missile: false, weapon: "laser", color: "#fff"
+        }];
+        app.world.updateProjectiles(0);
+        earthShips[1].state = "exploding";
+        app.world.projectiles = [{
+            x: 350, y: 400, vx: 250, vy: 0, angle: 0, targetId: earthShips[1].id, sourceId: earthShips[0].id,
+            faction: "earth", damage: 20, shieldDamage: 1, hullDamage: 2,
+            life: 1, missile: true, weapon: "missile", size: 22, color: "#fff"
+        }];
+        app.world.updateProjectiles(0);
+        const missileTargetId = app.world.projectiles[0].targetId;
         const calls = [];
         const originalFillText = app.renderer.context.fillText.bind(app.renderer.context);
         app.renderer.context.fillText = (...arguments_) => {
@@ -755,9 +916,23 @@ test("Free for All targets same-faction ships and suppresses the score overlay",
             originalFillText(...arguments_);
         };
         app.renderer.draw(app.world, app.settings, 60);
-        return { targetId: target && target.id, expectedId: earthShips[1].id, scoreDrawn: calls.some((text) => text.startsWith("Earth:")) };
+        return {
+            targetId: target && target.id,
+            expectedId: earthShips[1].id,
+            missileTargetId,
+            expectedMissileTargetId: earthShips[2].id,
+            friendlyHealth: earthShips[1].health,
+            scoreDrawn: calls.some((text) => text.startsWith("Earth:"))
+        };
     });
-    expect(result).toEqual({ targetId: result.expectedId, expectedId: result.expectedId, scoreDrawn: false });
+    expect(result).toEqual({
+        targetId: result.expectedId,
+        expectedId: result.expectedId,
+        missileTargetId: result.expectedMissileTargetId,
+        expectedMissileTargetId: result.expectedMissileTargetId,
+        friendlyHealth: 95,
+        scoreDrawn: false
+    });
 });
 
 test("debris and slow motion update live, and one-faction configurations complete", async ({ page }) => {

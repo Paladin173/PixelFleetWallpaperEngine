@@ -284,6 +284,7 @@
                 : WEAPON_BATTERIES[definition.sprite].map((battery) => ({ ...battery }));
             this.ships.push({
                 id: this.nextId++, type, faction, sprite: definition.sprite, engine: definition.engine,
+                role: type === "fighter" ? "escort" : type === "capital" && batteries.some((battery) => battery.weapon === "missile") ? "artillery" : "line",
                 x, y, angle: originAngle + Math.PI, speed: definition.speed, maxSpeed: definition.speed, turnRate: definition.turnRate,
                 health: definition.hull, maxHealth: definition.hull, shield: definition.shield, maxShield: definition.shield,
                 shieldRechargeDelay: 0,
@@ -324,7 +325,14 @@
             if (ship.state === "exploding") {
                 ship.deathTimer += delta;
                 ship.angle += delta * 0.8;
-                if (ship.deathTimer > 0.9) ship.state = "dead";
+                if (!ship.explosionDamageApplied && ship.deathTimer >= 0.75) {
+                    ship.explosionDamageApplied = true;
+                    this.applyExplosionDamage(ship);
+                }
+                if (ship.deathTimer > 0.9) {
+                    this.spawnDebris(ship);
+                    ship.state = "dead";
+                }
                 return;
             }
             if (ship.state === "warping") {
@@ -371,12 +379,63 @@
             } else if (Number.isFinite(ship.ai.shieldAttackThreshold) && ship.shield <= 0) {
                 ship.aiState = "retreating";
             }
-            const approachAngle = !ship.ai.straightAttackPath && distance < 320 ? desired + Math.PI / 4 : desired;
-            const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : approachAngle;
+            let navigationX = offsetX;
+            let navigationY = offsetY;
+            let idealRange = ship.ai.keepDistance ? 295 : ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130;
+            const escortAnchor = ship.role === "escort" ? this.findEscortAnchor(ship) : null;
+            if (escortAnchor) {
+                const anchorX = this.wrappedOffset(ship.x, escortAnchor.x, this.width);
+                const anchorY = this.wrappedOffset(ship.y, escortAnchor.y, this.height);
+                const targetFromAnchorX = this.wrappedOffset(escortAnchor.x, target.x, this.width);
+                const targetFromAnchorY = this.wrappedOffset(escortAnchor.y, target.y, this.height);
+                const threatDistance = Math.hypot(targetFromAnchorX, targetFromAnchorY);
+                const escortDistance = Math.hypot(anchorX, anchorY);
+                if (threatDistance > 340 || escortDistance > 220) {
+                    const slotAngle = ship.id * 2.399963229728653;
+                    navigationX = anchorX + Math.cos(slotAngle) * 90;
+                    navigationY = anchorY + Math.sin(slotAngle) * 90;
+                    idealRange = 30;
+                } else {
+                    idealRange = 120;
+                }
+            } else if (ship.role === "artillery") {
+                idealRange = 360;
+                if (distance < idealRange * 0.9) {
+                    navigationX = -offsetX;
+                    navigationY = -offsetY;
+                } else if (distance <= idealRange * 1.1) {
+                    const orbitDirection = ship.id % 2 ? 1 : -1;
+                    navigationX = -offsetY * orbitDirection;
+                    navigationY = offsetX * orbitDirection;
+                }
+            } else if (!ship.ai.straightAttackPath && distance < 320) {
+                const approachAngle = desired + Math.PI / 4;
+                navigationX = Math.cos(approachAngle) * distance;
+                navigationY = Math.sin(approachAngle) * distance;
+            }
+            const navigationGoalDistance = Math.hypot(navigationX, navigationY) || 1;
+            const navigationScale = Math.min(1, 160 / navigationGoalDistance);
+            navigationX *= navigationScale;
+            navigationY *= navigationScale;
+            const separationRange = ship.type === "capital" ? 120 : 65;
+            for (const ally of this.ships) {
+                if (ally === ship || ally.faction !== ship.faction || !["active", "disabled"].includes(ally.state)) continue;
+                const allyX = this.wrappedOffset(ship.x, ally.x, this.width);
+                const allyY = this.wrappedOffset(ship.y, ally.y, this.height);
+                const allyDistance = Math.hypot(allyX, allyY);
+                if (allyDistance <= 0 || allyDistance >= separationRange) continue;
+                const separation = (separationRange - allyDistance) * 3 / allyDistance;
+                navigationX -= allyX * separation;
+                navigationY -= allyY * separation;
+            }
+            const navigationDistance = Math.hypot(navigationX, navigationY) || 1;
+            const navigationAngle = Math.atan2(navigationY, navigationX);
+            const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : navigationAngle;
             let angleDelta = ((targetAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI;
             ship.angle += Math.max(-ship.turnRate * delta, Math.min(ship.turnRate * delta, angleDelta));
-            const idealRange = ship.ai.keepDistance ? 295 : ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130;
-            const thrust = ship.aiState === "retreating" ? 1 : distance > idealRange ? 1 : distance < idealRange * 0.55 ? -0.35 : 0.2;
+            const thrust = ship.aiState === "retreating" || ship.role === "artillery" || escortAnchor
+                ? 1
+                : navigationGoalDistance > idealRange ? 1 : navigationGoalDistance < idealRange * 0.55 ? -0.35 : 0.2;
             const engineFactor = 0.35 + ship.systems.engine / 100 * 0.65;
             ship.speed += (ship.maxSpeed * engineFactor * thrust - ship.speed) * Math.min(1, delta * 2.5);
             ship.x += Math.cos(ship.angle) * ship.speed * delta;
@@ -388,24 +447,49 @@
                 const rechargeRate = ship.type === "capital" ? 20 : ship.type === "bomber" ? 10 : 5;
                 ship.shield = Math.min(ship.maxShield, ship.shield + rechargeRate * (ship.systems.shields / 100) * delta);
             }
-            if (ship.aiState === "engaging" && ship.systems.weapons > 0 && distance < 400) this.updateWeaponSystems(ship, target, desired);
+            const weaponRange = ship.role === "artillery" ? 500 : 400;
+            if (ship.aiState === "engaging" && ship.systems.weapons > 0 && distance < weaponRange) this.updateWeaponSystems(ship, target, desired);
             ship.fireTimer = Math.min(...ship.weaponTimers);
             ship.enginePulse += delta * 8;
         }
 
         findTarget(ship) {
             const freeForAll = this.settings.simulationMode === "freeforall";
+            const escortAnchor = ship.role === "escort" ? this.findEscortAnchor(ship) : null;
             let closest = null;
             let closestDistance = Infinity;
+            let closestThreatensAnchor = false;
             for (const candidate of this.ships) {
                 if (candidate === ship || !["active", "disabled"].includes(candidate.state)) continue;
                 if (!freeForAll && candidate.faction === ship.faction) continue;
                 const offsetX = this.wrappedOffset(ship.x, candidate.x, this.width);
                 const offsetY = this.wrappedOffset(ship.y, candidate.y, this.height);
                 const distance = offsetX ** 2 + offsetY ** 2;
+                const threatensAnchor = Boolean(escortAnchor && Math.hypot(
+                    this.wrappedOffset(escortAnchor.x, candidate.x, this.width),
+                    this.wrappedOffset(escortAnchor.y, candidate.y, this.height)
+                ) <= 340);
                 const candidatePreferred = Boolean(ship.ai.preferHullDamage && candidate.shield <= 0);
                 const closestPreferred = Boolean(closest && ship.ai.preferHullDamage && closest.shield <= 0);
-                if ((!closestPreferred && candidatePreferred) || (candidatePreferred === closestPreferred && distance < closestDistance)) {
+                if ((!closestThreatensAnchor && threatensAnchor)
+                    || (threatensAnchor === closestThreatensAnchor && ((!closestPreferred && candidatePreferred)
+                    || (candidatePreferred === closestPreferred && distance < closestDistance)))) {
+                    closest = candidate;
+                    closestDistance = distance;
+                    closestThreatensAnchor = threatensAnchor;
+                }
+            }
+            return closest;
+        }
+
+        findEscortAnchor(ship) {
+            let closest = null;
+            let closestDistance = Infinity;
+            for (const candidate of this.ships) {
+                if (candidate.faction !== ship.faction || candidate.type !== "capital" || candidate.state !== "active") continue;
+                const distance = this.wrappedOffset(ship.x, candidate.x, this.width) ** 2
+                    + this.wrappedOffset(ship.y, candidate.y, this.height) ** 2;
+                if (distance < closestDistance) {
                     closest = candidate;
                     closestDistance = distance;
                 }
@@ -428,7 +512,7 @@
             for (let index = 0; index < batteries.length; index += 1) {
                 const battery = batteries[index];
                 const pointDelta = Math.abs(((aimAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI);
-                if (ship.weaponTimers[index] > 0 || (battery.mount === "point" && pointDelta > Math.PI / 9)) continue;
+                if (ship.weaponTimers[index] > 0 || (battery.mount === "point" && battery.weapon !== "missile" && pointDelta > Math.PI / 9)) continue;
                 this.fireBattery(ship, target, battery, aimAngle);
                 if (battery.burst) {
                     ship.weaponBursts[index] -= 1;
@@ -449,7 +533,7 @@
             if (weapon === "none") return;
             for (let index = 0; index < battery.count; index += 1) {
                 const center = (battery.count - 1) / 2;
-                const mountAngle = battery.mount === "turret" ? aimAngle : ship.angle;
+                const mountAngle = battery.mount === "turret" || weapon === "missile" ? aimAngle : ship.angle;
                 const inaccuracy = battery.mount === "turret" && weapon !== "beam" ? this.random.range(-Math.PI / 18, Math.PI / 18) : 0;
                 const angle = mountAngle + inaccuracy;
                 this.fireProjectile(ship, target, weapon, battery.damage, angle, index - center);
@@ -483,6 +567,7 @@
                 vy: Math.sin(angle) * speed,
                 angle,
                 targetId: target.id,
+                sourceId: ship.id,
                 faction: ship.faction,
                 damage,
                 shieldDamage: weapon === "ion" ? 2 : 1,
@@ -501,8 +586,11 @@
                 if (projectile.missile) {
                     let target = this.ships.find((ship) => ship.id === projectile.targetId && ["active", "disabled"].includes(ship.state));
                     if (!target) {
+                        const freeForAll = this.settings.simulationMode === "freeforall";
                         target = this.ships
-                            .filter((ship) => ["active", "disabled"].includes(ship.state) && ship.faction !== projectile.faction)
+                            .filter((ship) => ["active", "disabled"].includes(ship.state)
+                                && ship.id !== projectile.sourceId
+                                && (freeForAll || ship.faction !== projectile.faction))
                             .sort((left, right) => {
                                 const leftDistance = this.wrappedOffset(projectile.x, left.x, this.width) ** 2 + this.wrappedOffset(projectile.y, left.y, this.height) ** 2;
                                 const rightDistance = this.wrappedOffset(projectile.x, right.x, this.width) ** 2 + this.wrappedOffset(projectile.y, right.y, this.height) ** 2;
@@ -527,17 +615,16 @@
                 projectile.x = ((projectile.x + projectile.vx * delta) % this.width + this.width) % this.width;
                 projectile.y = ((projectile.y + projectile.vy * delta) % this.height + this.height) % this.height;
                 const target = this.ships.find((ship) => {
-                    if (!["active", "disabled"].includes(ship.state) || ship.faction === projectile.faction) return false;
-                    const collisionRadius = ship.shield > 0 ? ship.shieldRadius : ship.radius;
+                    if (!["active", "disabled"].includes(ship.state)) return false;
+                    if (ship.id === projectile.sourceId) return false;
+                    if (this.settings.simulationMode !== "freeforall" && ship.faction === projectile.faction) return false;
+                    const collisionRadius = ship.state === "active" && ship.shield > 0 ? ship.shieldRadius : ship.radius;
                     return Math.hypot(
                         this.wrappedOffset(projectile.x, ship.x, this.width),
                         this.wrappedOffset(projectile.y, ship.y, this.height)
                     ) < collisionRadius + 5;
                 });
-                if (target && Math.hypot(
-                    this.wrappedOffset(projectile.x, target.x, this.width),
-                    this.wrappedOffset(projectile.y, target.y, this.height)
-                ) < target.radius + 5) {
+                if (target) {
                     this.damageShip(target, projectile.damage, projectile.faction, projectile.shieldDamage, projectile.hullDamage, projectile.weapon);
                     projectile.life = 0;
                     this.stats.factions[projectile.faction].projectilesHit += 1;
@@ -559,8 +646,8 @@
         }
 
         damageShip(ship, damage, attackingFaction = null, shieldMultiplier = 1, hullMultiplier = 1, weapon = null) {
-            const hadShield = ship.shield > 0;
-            const shieldDamage = Math.min(ship.shield, damage * shieldMultiplier);
+            const hadShield = ship.state === "active" && ship.shield > 0;
+            const shieldDamage = hadShield ? Math.min(ship.shield, damage * shieldMultiplier) : 0;
             ship.shield -= shieldDamage;
             if (hadShield && ship.shield <= 0) {
                 ship.shield = 0;
@@ -583,8 +670,8 @@
                 const systemName = this.random.pick(["shields", "engine", "weapons"]);
                 const previous = ship.systems[systemName];
                 ship.systems[systemName] = Math.max(0, previous - hullDamage * 0.8);
-                if (previous > 0 && ship.systems[systemName] === 0 && attackingFaction && this.stats.factions[attackingFaction]) {
-                    this.stats.factions[attackingFaction].systemsDestroyed += 1;
+                if (previous > 0 && ship.systems[systemName] === 0) {
+                    this.stats.factions[ship.faction].systemsDestroyed += 1;
                 }
             }
             if (ship.health <= 0 && this.destroyShip(ship)) {
@@ -597,6 +684,7 @@
             if (!ship || ship.state !== "active") return false;
             ship.state = "exploding";
             ship.deathTimer = 0;
+            ship.explosionDamageApplied = false;
             this.stats.factions[ship.faction].deaths += 1;
             const bursts = ship.type === "capital" ? 9 : 4;
             for (let index = 0; index < bursts; index += 1) {
@@ -606,18 +694,40 @@
                     life: 0.75, size: this.random.range(18, ship.type === "capital" ? 56 : 32)
                 });
             }
-            if (this.settings.debris) {
-                for (let index = 0; index < (ship.type === "capital" ? 7 : 3); index += 1) {
-                    const angle = this.random.range(0, TWO_PI);
-                    this.effects.push({
-                        kind: "debris", x: ship.x, y: ship.y, age: 0, life: 4,
-                        size: this.random.range(5, 12), vx: Math.cos(angle) * this.random.range(25, 80),
-                        vy: Math.sin(angle) * this.random.range(25, 80), angle, spin: this.random.range(-4, 4),
-                        sprite: `ship_debris_${1 + Math.floor(this.random.next() * 3)}.png`
-                    });
-                }
-            }
             return true;
+        }
+
+        applyExplosionDamage(ship) {
+            const radius = ship.type === "capital" ? 128 : 48;
+            const damage = ship.type === "capital" ? 96 : 36;
+            for (const target of this.ships) {
+                if (target === ship || !["active", "disabled"].includes(target.state)) continue;
+                if (this.settings.simulationMode !== "freeforall" && target.faction === ship.faction) continue;
+                if (Math.hypot(
+                    this.wrappedOffset(ship.x, target.x, this.width),
+                    this.wrappedOffset(ship.y, target.y, this.height)
+                ) < radius) this.damageShip(target, damage, ship.faction, 1, 2, "missile");
+            }
+        }
+
+        spawnDebris(ship) {
+            if (!this.settings.debris) return;
+            const fighterClass = ship.type !== "capital";
+            const minimum = fighterClass ? 2 : 3;
+            const maximum = fighterClass ? 5 : 10;
+            const count = minimum + Math.floor(this.random.next() * (maximum - minimum + 1));
+            for (let index = 0; index < count; index += 1) {
+                const movingForward = ship.speed > 0;
+                const speed = this.random.range(0, movingForward ? ship.speed : ship.maxSpeed);
+                const angle = movingForward ? ship.angle + this.random.range(-Math.PI / 4, Math.PI / 4) : this.random.range(0, TWO_PI);
+                this.effects.push({
+                    kind: "debris", x: ship.x + this.random.range(-ship.radius, ship.radius),
+                    y: ship.y + this.random.range(-ship.radius, ship.radius), age: 0, life: 5,
+                    size: this.random.range(5, 12), vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed, angle, spin: this.random.range(-4, 4),
+                    sprite: `ship_debris_${1 + Math.floor(this.random.next() * 3)}.png`
+                });
+            }
         }
 
         updateEffects(delta) {
@@ -635,6 +745,20 @@
                     effect.x += effect.vx * delta;
                     effect.y += effect.vy * delta;
                     effect.angle += effect.spin * delta;
+                    effect.x = ((effect.x % this.width) + this.width) % this.width;
+                    effect.y = ((effect.y % this.height) + this.height) % this.height;
+                    const target = this.ships.find((ship) => {
+                        if (!["active", "disabled"].includes(ship.state)) return false;
+                        const collisionRadius = ship.state === "active" && ship.shield > 0 ? ship.shieldRadius : ship.radius;
+                        return Math.hypot(
+                            this.wrappedOffset(effect.x, ship.x, this.width),
+                            this.wrappedOffset(effect.y, ship.y, this.height)
+                        ) < collisionRadius;
+                    });
+                    if (target) {
+                        this.damageShip(target, 5, null, 1, 1, "debris");
+                        effect.age = effect.life;
+                    }
                 }
             }
             this.effects = this.effects.filter((effect) => effect.age < effect.life);
@@ -663,12 +787,16 @@
                 if (asteroid.belt || asteroid.hitTimer > 0) continue;
                 const x = asteroid.x * this.width;
                 const y = asteroid.y * this.height;
-                const ship = this.ships.find((candidate) => candidate.state === "active" && Math.hypot(
-                    this.wrappedOffset(x, candidate.x, this.width),
-                    this.wrappedOffset(y, candidate.y, this.height)
-                ) < candidate.radius + asteroid.size / 2);
+                const ship = this.ships.find((candidate) => {
+                    if (!["active", "disabled"].includes(candidate.state)) return false;
+                    const collisionRadius = candidate.state === "active" && candidate.shield > 0 ? candidate.shieldRadius : candidate.radius;
+                    return Math.hypot(
+                        this.wrappedOffset(x, candidate.x, this.width),
+                        this.wrappedOffset(y, candidate.y, this.height)
+                    ) < collisionRadius + asteroid.size / 2;
+                });
                 if (ship) {
-                    this.damageShip(ship, 7, null);
+                    this.damageShip(ship, 7, null, 1, 1.2, "asteroid");
                     asteroid.hitTimer = 0.75;
                     this.effects.push({ kind: "hit", x, y, age: 0, life: 0.25, size: 12, color: "#c8bba4" });
                 }

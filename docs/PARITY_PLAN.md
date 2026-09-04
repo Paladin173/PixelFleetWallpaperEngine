@@ -31,7 +31,8 @@ wallpaper runtime features and have no desktop equivalent.
 - [x] Persistent faction scores and lifetime combat statistics
 - [x] APK-derived score-share and rank-transfer automatic faction balancing
 - [x] APK-derived hull, shield, movement, turn, mount, charge, damage, and AI parameters
-- [x] Audited desktop balance correction with deterministic 90-battle evidence
+- [x] Desktop artillery, escort, and separation tactics around APK combat parameters
+- [x] Unmodified APK score weighting validated with deterministic 120-battle evidence
 
 ## Acceptance Gates
 

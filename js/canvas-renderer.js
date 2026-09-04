@@ -12,6 +12,7 @@
         "shield_cruiser_class_4x.png", "shield_fighter_class.png", "shield_bomber_class.png", "missile2_4x.png",
         "warp.png", "laser_4x.png", "ball_laser_2x.png", "arc.png"
     ];
+    const FACTION_COLORS = { earth: "#f4f7fb", gliese: "#ff4138", eridani: "#359dff" };
 
     class CanvasRenderer {
         constructor(canvas) {
@@ -119,10 +120,28 @@
             if (ship.state === "active" || ship.state === "warping") this.drawSprite(context, ship.engine, x, y, ship.angle + Math.PI / 2, null, pulse);
             const alpha = ship.state === "exploding" ? Math.max(0, 1 - ship.deathTimer / 0.9) : 1;
             this.drawSprite(context, ship.sprite, x, y, ship.angle + Math.PI / 2, null, alpha);
+            this.drawFactionMarkings(context, ship, x, y, alpha);
             if (ship.shield < ship.maxShield && ship.shield > 0) {
                 const shieldName = ship.type === "capital" ? "shield_cruiser_class_4x.png" : ship.type === "bomber" ? "shield_bomber_class.png" : "shield_fighter_class.png";
                 this.drawSprite(context, shieldName, x, y, ship.angle + Math.PI / 2, ship.radius * 2.45, 0.1 + 0.18 * (ship.shield / ship.maxShield), true);
             }
+        }
+
+        drawFactionMarkings(context, ship, x, y, alpha) {
+            const color = FACTION_COLORS[ship.faction];
+            if (!color) return;
+            const width = Math.max(5, ship.radius * 0.58);
+            const height = Math.max(2, Math.min(4, ship.radius * 0.16));
+            const offset = ship.radius * 0.62;
+            context.save();
+            context.translate(x, y);
+            context.rotate(ship.angle);
+            context.globalCompositeOperation = "lighter";
+            context.globalAlpha = alpha * 0.9;
+            context.fillStyle = color;
+            context.fillRect(-width / 2, -offset - height / 2, width, height);
+            context.fillRect(-width / 2, offset - height / 2, width, height);
+            context.restore();
         }
 
         drawWarp(context, x, y, angle, radius, alpha) {

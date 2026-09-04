@@ -6,7 +6,8 @@ corresponding Wallpaper Engine implementation. The source APK has SHA-256
 
 The authoritative code paths are `Ship.setLoadout`, `Ship.AI.init`,
 `Ship.System.updateWeaponSystem`, `Ship.hitShield`, `Ship.hitHull`,
-`Projectile`, `GameLogic.processProjectiles`, and `Stats.updateSpawnProbabilities`.
+`Ship.explode`, `Ship.spawnDebris`, `Projectile`, `GameLogic.processProjectiles`,
+`GameLogic.processAsteroids`, and `Stats.updateSpawnProbabilities`.
 
 ## Ship Parameters
 
@@ -35,6 +36,8 @@ fighter missiles use its separate level formula.
 - Lasers deal 5 base damage, missiles 20, and ions 5 before level modifiers.
 - Missiles deal 2x hull damage. Ions deal 2x shield and 0x hull damage.
 - Shields absorb an entire projectile without overflow into hull.
+- Shield interception uses the APK radii of 64, 30, and 24 and only applies
+  while a ship is active; disabled ships take hits at their hull radius.
 - A collapsed shield waits three seconds before recharging.
 - Recharge is 20 points/second for capitals, 10 for bombers, and 5 for fighters.
 - Projectiles live for five seconds. Lasers and ions travel at 500 pixels/second;
@@ -45,6 +48,13 @@ fighter missiles use its separate level formula.
 - Eridani ion systems select their laser secondary while the target has no shield.
 - Turrets have the APK random ten-degree aiming error. Point mounts require a
   target inside their forward twenty-degree firing arc.
+- Asteroids deal 7 shield damage or 8.4 hull damage through the APK's 1.2 hull
+  multiplier, using shield and hull collision radii as appropriate.
+- Exploding capitals deal 96 area damage within 128 pixels; fighters and
+  bombers deal 36 within 48 pixels. Missile-equipped ships apply the APK 2x
+  hull multiplier, and friendly ships are excluded outside Free for All.
+- Destroyed capitals spawn 3-10 damaging debris pieces and smaller ships spawn
+  2-5. Each piece deals 5 damage on first contact and is then consumed.
 
 ## AI Parameters
 
@@ -57,19 +67,29 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
 
 - Coordinates wrap at the viewport edges to meet the desktop wallpaper edge
   requirement; the Android sector removes out-of-bounds projectiles.
+- Fleet movement adds desktop role tactics around the APK parameters: missile
+  capitals maintain standoff range and can launch guided weapons independently
+  of heading, fighters defend and return to allied capitals, and nearby allies
+  separate to avoid visually stacked formations.
+- Desktop hull accents identify Earth in white, Gliese in red, and Eridani in
+  blue while preserving the original ship sprites beneath them.
 - The APK's Earth cruiser `RANDOM` branch can select projectile enum members
   that its firing switch cannot emit. The port preserves those non-firing mount
   outcomes as `none` rather than constructing invalid projectile objects.
 - The APK score/rank transfer formula and spawn weights are preserved without
   faction-specific correction. With capital target acquisition fixed, the
-  deterministic 90-battle sample completes without timeouts at 29/33/28.
+  deterministic 120-battle role-aware sample completes without timeouts at
+  39/40/41.
 - Complex per-pixel hull circles and individual component hit locations are
   represented by class collision radii and aggregate shield, engine, and weapon
-  health. Shield interception uses the APK radii of 64, 30, and 24.
+  health.
 
 ## Regression Evidence
 
 Playwright verifies every class's hull, shield, speed, turn rate, AI flags,
 weapon type, mount, damage, cooldown, secondary, and burst configuration. It
 also exercises first-contact collision, missile reacquisition, ion disable and
-recovery, shield collapse delay, damage bonuses, and Eridani secondary switching.
+recovery, active-only shield interception, shield collapse delay, asteroid
+damage bonuses, explosion area damage, damaging debris, subsystem-stat ownership,
+and Eridani secondary switching. The 25-test suite passes, and a 120-battle
+runtime sample reports zero timeouts and zero non-finite ship values.
