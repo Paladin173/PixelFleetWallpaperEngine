@@ -37,9 +37,9 @@ faction balancing; and all six original debug overlays.
 Camera zoom-out ranges from 1x to 5x. The new 1x baseline already shows 2.5 times
 as much battlefield as the original view, while higher values reveal progressively
 more space. Set Stars to Never to hide the starfield independently of the other
-background elements. A Settings Category selector separates Display, Battle,
-Environment, Effects & Interaction, Scoreboard, each faction's fleet, and
-Diagnostics into focused panels.
+background elements. Collapsible headings separate Display, Battle, Environment,
+Effects & Interaction, Scoreboard, each faction's fleet, and Diagnostics. Display
+starts expanded; the other sections stay folded until needed.
 
 The faction score can be shown at the top or bottom of the screen. Extended
 horizontal and vertical offsets adjust its exact position on high-resolution

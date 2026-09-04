@@ -8,53 +8,17 @@
     "type": "web",
     "general": {
         "properties": {
-            "settingscategory": {
-                "order": 0,
-                "text": "Settings Category",
-                "type": "combo",
-                "value": "display",
-                "options": [
-                    {
-                        "label": "Display",
-                        "value": "display"
-                    },
-                    {
-                        "label": "Battle",
-                        "value": "battle"
-                    },
-                    {
-                        "label": "Environment",
-                        "value": "environment"
-                    },
-                    {
-                        "label": "Effects & Interaction",
-                        "value": "effects"
-                    },
-                    {
-                        "label": "Scoreboard",
-                        "value": "scoreboard"
-                    },
-                    {
-                        "label": "Earth Fleet",
-                        "value": "earth"
-                    },
-                    {
-                        "label": "Gliese Fleet",
-                        "value": "gliese"
-                    },
-                    {
-                        "label": "Eridani Fleet",
-                        "value": "eridani"
-                    },
-                    {
-                        "label": "Diagnostics",
-                        "value": "diagnostics"
-                    }
-                ]
+            "display_settings": {
+                "index": 0,
+                "order": 100,
+                "text": "<hr><h3>Display</h3><hr>",
+                "type": "bool",
+                "value": true
             },
             "renderquality": {
-                "order": 10,
-                "condition": "settingscategory.value === 'display'",
+                "index": 1,
+                "order": 101,
+                "condition": "display_settings.value",
                 "text": "Render Quality",
                 "type": "combo",
                 "value": "auto",
@@ -78,8 +42,9 @@
                 ]
             },
             "zoom": {
-                "order": 11,
-                "condition": "settingscategory.value === 'display'",
+                "index": 2,
+                "order": 102,
+                "condition": "display_settings.value",
                 "text": "Camera Zoom Out",
                 "type": "slider",
                 "value": 1,
@@ -88,8 +53,9 @@
                 "step": 0.1
             },
             "brightness": {
-                "order": 12,
-                "condition": "settingscategory.value === 'display'",
+                "index": 3,
+                "order": 103,
+                "condition": "display_settings.value",
                 "text": "Brightness",
                 "type": "slider",
                 "value": 100,
@@ -97,9 +63,17 @@
                 "max": 150,
                 "step": 5
             },
+            "battle_settings": {
+                "index": 4,
+                "order": 104,
+                "text": "<hr><h3>Battle</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "simulationmode": {
-                "order": 20,
-                "condition": "settingscategory.value === 'battle'",
+                "index": 5,
+                "order": 105,
+                "condition": "battle_settings.value",
                 "text": "Simulation Mode",
                 "type": "combo",
                 "value": "survival",
@@ -123,8 +97,9 @@
                 ]
             },
             "capitalships": {
-                "order": 21,
-                "condition": "settingscategory.value === 'battle'",
+                "index": 6,
+                "order": 106,
+                "condition": "battle_settings.value",
                 "text": "Capital Ships",
                 "type": "slider",
                 "value": 6,
@@ -133,8 +108,9 @@
                 "step": 1
             },
             "fighters": {
-                "order": 22,
-                "condition": "settingscategory.value === 'battle'",
+                "index": 7,
+                "order": 107,
+                "condition": "battle_settings.value",
                 "text": "Fighters",
                 "type": "slider",
                 "value": 12,
@@ -143,8 +119,9 @@
                 "step": 1
             },
             "bombers": {
-                "order": 23,
-                "condition": "settingscategory.value === 'battle'",
+                "index": 8,
+                "order": 108,
+                "condition": "battle_settings.value",
                 "text": "Bombers",
                 "type": "slider",
                 "value": 6,
@@ -152,9 +129,17 @@
                 "max": 20,
                 "step": 1
             },
+            "environment_settings": {
+                "index": 9,
+                "order": 109,
+                "text": "<hr><h3>Environment</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "asteroids": {
-                "order": 30,
-                "condition": "settingscategory.value === 'environment'",
+                "index": 10,
+                "order": 110,
+                "condition": "environment_settings.value",
                 "text": "Asteroids",
                 "type": "slider",
                 "value": 30,
@@ -163,8 +148,9 @@
                 "step": 5
             },
             "stars": {
-                "order": 31,
-                "condition": "settingscategory.value === 'environment'",
+                "index": 11,
+                "order": 111,
+                "condition": "environment_settings.value",
                 "text": "Stars",
                 "type": "combo",
                 "value": "randomly",
@@ -184,8 +170,9 @@
                 ]
             },
             "spacedust": {
-                "order": 32,
-                "condition": "settingscategory.value === 'environment'",
+                "index": 12,
+                "order": 112,
+                "condition": "environment_settings.value",
                 "text": "Space Dust",
                 "type": "combo",
                 "value": "randomly",
@@ -205,8 +192,9 @@
                 ]
             },
             "planets": {
-                "order": 33,
-                "condition": "settingscategory.value === 'environment'",
+                "index": 13,
+                "order": 113,
+                "condition": "environment_settings.value",
                 "text": "Planets",
                 "type": "combo",
                 "value": "randomly",
@@ -226,8 +214,9 @@
                 ]
             },
             "asteroidbelt": {
-                "order": 34,
-                "condition": "settingscategory.value === 'environment'",
+                "index": 14,
+                "order": 114,
+                "condition": "environment_settings.value",
                 "text": "Asteroid Belt",
                 "type": "combo",
                 "value": "randomly",
@@ -246,44 +235,64 @@
                     }
                 ]
             },
+            "effects_settings": {
+                "index": 15,
+                "order": 115,
+                "text": "<hr><h3>Effects &amp; Interaction</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "debris": {
-                "order": 40,
-                "condition": "settingscategory.value === 'effects'",
+                "index": 16,
+                "order": 116,
+                "condition": "effects_settings.value",
                 "text": "Ship Debris",
                 "type": "bool",
                 "value": true
             },
             "slowmotion": {
-                "order": 41,
-                "condition": "settingscategory.value === 'effects'",
+                "index": 17,
+                "order": 117,
+                "condition": "effects_settings.value",
                 "text": "Slow Motion Explosions",
                 "type": "bool",
                 "value": true
             },
             "autobalance": {
-                "order": 42,
-                "condition": "settingscategory.value === 'effects'",
+                "index": 18,
+                "order": 118,
+                "condition": "effects_settings.value",
                 "text": "Auto-balance Factions",
                 "type": "bool",
                 "value": true
             },
             "interaction": {
-                "order": 43,
-                "condition": "settingscategory.value === 'effects'",
+                "index": 19,
+                "order": 119,
+                "condition": "effects_settings.value",
                 "text": "Double-click to Destroy",
                 "type": "bool",
                 "value": true
             },
+            "scoreboard_settings": {
+                "index": 20,
+                "order": 120,
+                "text": "<hr><h3>Scoreboard</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "showscore": {
-                "order": 50,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 21,
+                "order": 121,
+                "condition": "scoreboard_settings.value",
                 "text": "Show Score",
                 "type": "bool",
                 "value": false
             },
             "scoreorientation": {
-                "order": 51,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 22,
+                "order": 122,
+                "condition": "scoreboard_settings.value",
                 "text": "Position",
                 "type": "combo",
                 "value": "bottom",
@@ -299,8 +308,9 @@
                 ]
             },
             "scorehorizontaloffset": {
-                "order": 52,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 23,
+                "order": 123,
+                "condition": "scoreboard_settings.value",
                 "text": "Horizontal Offset",
                 "type": "slider",
                 "value": 0,
@@ -309,8 +319,9 @@
                 "step": 1
             },
             "scoreverticaloffset": {
-                "order": 53,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 24,
+                "order": 124,
+                "condition": "scoreboard_settings.value",
                 "text": "Vertical Offset",
                 "type": "slider",
                 "value": 0,
@@ -319,8 +330,9 @@
                 "step": 1
             },
             "scoresize": {
-                "order": 54,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 25,
+                "order": 125,
+                "condition": "scoreboard_settings.value",
                 "text": "Font Size",
                 "type": "slider",
                 "value": 100,
@@ -329,8 +341,9 @@
                 "step": 5
             },
             "scoreopacity": {
-                "order": 55,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 26,
+                "order": 126,
+                "condition": "scoreboard_settings.value",
                 "text": "Text Opacity",
                 "type": "slider",
                 "value": 100,
@@ -339,22 +352,25 @@
                 "step": 5
             },
             "scorecolor": {
-                "order": 56,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 27,
+                "order": 127,
+                "condition": "scoreboard_settings.value",
                 "text": "Text Color",
                 "type": "color",
                 "value": "1 1 1"
             },
             "scorebackground": {
-                "order": 57,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 28,
+                "order": 128,
+                "condition": "scoreboard_settings.value",
                 "text": "Show Background",
                 "type": "bool",
                 "value": false
             },
             "scorebackgroundopacity": {
-                "order": 58,
-                "condition": "settingscategory.value === 'scoreboard' && scorebackground.value === true",
+                "index": 29,
+                "order": 129,
+                "condition": "scoreboard_settings.value && scorebackground.value",
                 "text": "Background Opacity",
                 "type": "slider",
                 "value": 55,
@@ -363,134 +379,181 @@
                 "step": 5
             },
             "resetstats": {
-                "order": 59,
-                "condition": "settingscategory.value === 'scoreboard'",
+                "index": 30,
+                "order": 130,
+                "condition": "scoreboard_settings.value",
                 "text": "Reset Score and Statistics",
                 "type": "bool",
                 "value": false
             },
+            "earth_settings": {
+                "index": 31,
+                "order": 131,
+                "text": "<hr><h3>Earth Fleet</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "spawnearthcruiser": {
-                "order": 60,
-                "condition": "settingscategory.value === 'earth'",
+                "index": 32,
+                "order": 132,
+                "condition": "earth_settings.value",
                 "text": "Cruiser",
                 "type": "bool",
                 "value": true
             },
             "spawnearthmissilefrigate": {
-                "order": 61,
-                "condition": "settingscategory.value === 'earth'",
+                "index": 33,
+                "order": 133,
+                "condition": "earth_settings.value",
                 "text": "Missile Frigate",
                 "type": "bool",
                 "value": true
             },
             "spawnearthfighter": {
-                "order": 62,
-                "condition": "settingscategory.value === 'earth'",
+                "index": 34,
+                "order": 134,
+                "condition": "earth_settings.value",
                 "text": "Fighter",
                 "type": "bool",
                 "value": true
             },
             "spawnearthbomber": {
-                "order": 63,
-                "condition": "settingscategory.value === 'earth'",
+                "index": 35,
+                "order": 135,
+                "condition": "earth_settings.value",
                 "text": "Bomber",
                 "type": "bool",
                 "value": true
             },
+            "gliese_settings": {
+                "index": 36,
+                "order": 136,
+                "text": "<hr><h3>Gliese Fleet</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "spawngliesecorvette": {
-                "order": 70,
-                "condition": "settingscategory.value === 'gliese'",
+                "index": 37,
+                "order": 137,
+                "condition": "gliese_settings.value",
                 "text": "Corvette",
                 "type": "bool",
                 "value": true
             },
             "spawngliesedreadnaught": {
-                "order": 71,
-                "condition": "settingscategory.value === 'gliese'",
+                "index": 38,
+                "order": 138,
+                "condition": "gliese_settings.value",
                 "text": "Dreadnaught",
                 "type": "bool",
                 "value": true
             },
             "spawngliesefighter": {
-                "order": 72,
-                "condition": "settingscategory.value === 'gliese'",
+                "index": 39,
+                "order": 139,
+                "condition": "gliese_settings.value",
                 "text": "Fighter",
                 "type": "bool",
                 "value": true
             },
             "spawngliesebomber": {
-                "order": 73,
-                "condition": "settingscategory.value === 'gliese'",
+                "index": 40,
+                "order": 140,
+                "condition": "gliese_settings.value",
                 "text": "Bomber",
                 "type": "bool",
                 "value": true
             },
+            "eridani_settings": {
+                "index": 41,
+                "order": 141,
+                "text": "<hr><h3>Eridani Fleet</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "spawneridanigunboat": {
-                "order": 80,
-                "condition": "settingscategory.value === 'eridani'",
+                "index": 42,
+                "order": 142,
+                "condition": "eridani_settings.value",
                 "text": "Gunboat",
                 "type": "bool",
                 "value": true
             },
             "spawneridanidestroyer": {
-                "order": 81,
-                "condition": "settingscategory.value === 'eridani'",
+                "index": 43,
+                "order": 143,
+                "condition": "eridani_settings.value",
                 "text": "Destroyer",
                 "type": "bool",
                 "value": true
             },
             "spawneridanifighter": {
-                "order": 82,
-                "condition": "settingscategory.value === 'eridani'",
+                "index": 44,
+                "order": 144,
+                "condition": "eridani_settings.value",
                 "text": "Fighter",
                 "type": "bool",
                 "value": true
             },
             "spawneridanibomber": {
-                "order": 83,
-                "condition": "settingscategory.value === 'eridani'",
+                "index": 45,
+                "order": 145,
+                "condition": "eridani_settings.value",
                 "text": "Bomber",
                 "type": "bool",
                 "value": true
             },
+            "diagnostics_settings": {
+                "index": 46,
+                "order": 146,
+                "text": "<hr><h3>Diagnostics</h3><hr>",
+                "type": "bool",
+                "value": false
+            },
             "showhitboxes": {
-                "order": 90,
-                "condition": "settingscategory.value === 'diagnostics'",
+                "index": 47,
+                "order": 147,
+                "condition": "diagnostics_settings.value",
                 "text": "Hitboxes",
                 "type": "bool",
                 "value": false
             },
             "showhpbars": {
-                "order": 91,
-                "condition": "settingscategory.value === 'diagnostics'",
+                "index": 48,
+                "order": 148,
+                "condition": "diagnostics_settings.value",
                 "text": "HP Bars",
                 "type": "bool",
                 "value": false
             },
             "showshipmovement": {
-                "order": 92,
-                "condition": "settingscategory.value === 'diagnostics'",
+                "index": 49,
+                "order": 149,
+                "condition": "diagnostics_settings.value",
                 "text": "Ship Movement",
                 "type": "bool",
                 "value": false
             },
             "showshipstate": {
-                "order": 93,
-                "condition": "settingscategory.value === 'diagnostics'",
+                "index": 50,
+                "order": 150,
+                "condition": "diagnostics_settings.value",
                 "text": "Ship State",
                 "type": "bool",
                 "value": false
             },
             "showprojectiletargets": {
-                "order": 94,
-                "condition": "settingscategory.value === 'diagnostics'",
+                "index": 51,
+                "order": 151,
+                "condition": "diagnostics_settings.value",
                 "text": "Projectile Targets",
                 "type": "bool",
                 "value": false
             },
             "showfps": {
-                "order": 95,
-                "condition": "settingscategory.value === 'diagnostics'",
+                "index": 52,
+                "order": 152,
+                "condition": "diagnostics_settings.value",
                 "text": "FPS",
                 "type": "bool",
                 "value": false
