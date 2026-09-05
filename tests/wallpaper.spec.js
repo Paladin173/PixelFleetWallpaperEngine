@@ -147,7 +147,7 @@ test("default scene renders the original starfield and all fleet classes", async
     expect(state.cacheReused).toBe(true);
     expect(state.tintTotals.gliese[0]).toBeGreaterThan(state.tintTotals.eridani[0]);
     expect(state.tintTotals.eridani[2]).toBeGreaterThan(state.tintTotals.gliese[2]);
-    expect(state.exhaustColors).toEqual(["#4bbcff", "#e8fbff", "#ff3d24", "#ffd06a", "#386cff", "#a9e6ff"]);
+    expect(state.exhaustColors).toEqual(["#4bbcff", "#e8fbff", "#ff3d24", "#ffd06a", "#ffb000", "#fff2a6"]);
     expect(state.highPulseTail).toBeLessThan(state.lowPulseTail);
     expect(state.tintedDraws).toBe(1);
     expect(state.exhaustDraws).toBe(1);

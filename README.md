@@ -21,8 +21,8 @@ chasing distant contacts, and broader spawn formations, escort stations, and
 collision avoidance spread ships across the available battlefield. Ships and
 weapons wrap continuously through opposite battlefield edges. The original hull
 sprites are tinted by faction: Earth stays bright white, Gliese uses red, and
-Eridani uses blue. Faction-colored plasma exhaust pulses behind the existing
-engine textures. Earth cruisers act as carriers: configured Earth fighters deploy
+Eridani uses blue. Plasma exhaust pulses behind the existing engine textures,
+with yellow thrusters distinguishing the blue Eridani ships. Earth cruisers act as carriers: configured Earth fighters deploy
 from their hulls and return to the carrier's defensive screen. Surviving ships
 face their outbound movement direction before accelerating into warp.
 

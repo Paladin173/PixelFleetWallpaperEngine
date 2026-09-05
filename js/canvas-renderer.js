@@ -16,7 +16,7 @@
     const ENGINE_COLORS = {
         earth: { outer: "#4bbcff", inner: "#e8fbff" },
         gliese: { outer: "#ff3d24", inner: "#ffd06a" },
-        eridani: { outer: "#386cff", inner: "#a9e6ff" }
+        eridani: { outer: "#ffb000", inner: "#fff2a6" }
     };
 
     class CanvasRenderer {
