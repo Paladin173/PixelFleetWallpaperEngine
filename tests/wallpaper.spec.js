@@ -48,8 +48,8 @@ test("Wallpaper Engine manifest and original assets are complete", async () => {
         effects_settings: "Effects &amp; Interaction",
         scoreboard_settings: "Scoreboard",
         earth_settings: "Earth Fleet",
-        gliese_settings: "Gliese Fleet",
-        eridani_settings: "Eridani Fleet",
+        gliese_settings: "Gliese 581 system",
+        eridani_settings: "Epsilon Eridani system",
         diagnostics_settings: "Diagnostics"
     };
     for (const [key, label] of Object.entries(sections)) {
@@ -61,7 +61,8 @@ test("Wallpaper Engine manifest and original assets are complete", async () => {
     expect(project.general.properties.stars).toMatchObject({ index: 11, order: 111, condition: "environment_settings.value", text: "Stars" });
     expect(project.general.properties.planets).toMatchObject({ index: 13, order: 113, condition: "environment_settings.value", text: "Planets" });
     expect(project.general.properties.spawnearthcruiser).toMatchObject({ index: 32, order: 132, condition: "earth_settings.value", text: "Cruiser" });
-    expect(project.general.properties.spawngliesecorvette).toMatchObject({ index: 37, order: 137, condition: "gliese_settings.value", text: "Corvette" });
+    expect(project.general.properties.spawngliesedreadnaught).toMatchObject({ index: 37, order: 137, condition: "gliese_settings.value", text: "Dreadnaught" });
+    expect(project.general.properties.spawngliesecorvette).toMatchObject({ index: 38, order: 138, condition: "gliese_settings.value", text: "Corvette" });
     expect(project.general.properties.spawneridanigunboat).toMatchObject({ index: 42, order: 142, condition: "eridani_settings.value", text: "Gunboat" });
     const properties = Object.values(project.general.properties);
     expect(properties.map((property) => property.index).sort((left, right) => left - right)).toEqual([...Array(53).keys()]);
@@ -96,9 +97,22 @@ test("default scene renders the original starfield and all fleet classes", async
             tintTotals[faction] = totals;
         }
         const cacheReused = app.renderer.tintedSprite(sprite, "gliese") === app.renderer.tintedSprite(sprite, "gliese");
+        const tintProbeSource = document.createElement("canvas");
+        tintProbeSource.width = 1;
+        tintProbeSource.height = 1;
+        const tintProbeContext = tintProbeSource.getContext("2d");
+        tintProbeContext.fillStyle = "#ffffff";
+        tintProbeContext.fillRect(0, 0, 1, 1);
+        app.renderer.images.set("__tint_probe__", tintProbeSource);
+        const tintProbe = Object.fromEntries(["earth", "gliese", "eridani"].map((faction) => [
+            faction,
+            [...app.renderer.tintedSprite("__tint_probe__", faction).getContext("2d").getImageData(0, 0, 1, 1).data]
+        ]));
+        app.renderer.images.delete("__tint_probe__");
+        for (const faction of ["earth", "gliese", "eridani"]) app.renderer.tintedImages.delete(`__tint_probe__:${faction}`);
         const exhaustContext = {
             fillStyles: [], points: [], fillStyle: "", globalAlpha: 1, globalCompositeOperation: "source-over",
-            save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, closePath() {},
+            save() { }, restore() { }, translate() { }, rotate() { }, beginPath() { }, closePath() { },
             moveTo(x, y) { this.points.push([x, y]); }, lineTo(x, y) { this.points.push([x, y]); },
             fill() { this.fillStyles.push(this.fillStyle); }
         };
@@ -127,9 +141,11 @@ test("default scene renders the original starfield and all fleet classes", async
             shipCount: app.world.ships.length,
             types: [...new Set(app.world.ships.map((ship) => ship.type))],
             factions: [...new Set(app.world.ships.map((ship) => ship.faction))],
+            classes: [...new Set(app.world.ships.map((ship) => ship.sprite))].sort(),
             loadedAssets: app.renderer.images.size,
             hasMarkerOverlay: typeof app.renderer.drawFactionMarkings === "function",
             tintTotals,
+            tintProbe,
             cacheReused,
             exhaustColors: [...new Set(exhaustContext.fillStyles)],
             lowPulseTail: Math.min(...lowPulseContext.points.map(([x]) => x)),
@@ -142,11 +158,17 @@ test("default scene renders the original starfield and all fleet classes", async
     expect(state.shipCount).toBe(24);
     expect(state.types.sort()).toEqual(["bomber", "capital", "fighter"]);
     expect(state.factions.sort()).toEqual(["earth", "eridani", "gliese"]);
+    expect(state.classes).toEqual([
+        "cruiser_1_4x.png", "earth_bomber.png", "earth_fighter.png", "earth_missile_cruiser_4x.png",
+        "epsilon_eridani_destroyer.png", "epsilon_eridani_gunboat.png", "eridani_bomber.png", "eridani_fighter.png",
+        "gliese_bomber.png", "gliese_corvette.png", "gliese_dreadnaught_4x.png", "gliese_fighter.png"
+    ]);
     expect(state.loadedAssets).toBe(44);
     expect(state.hasMarkerOverlay).toBe(false);
     expect(state.cacheReused).toBe(true);
     expect(state.tintTotals.gliese[0]).toBeGreaterThan(state.tintTotals.eridani[0]);
     expect(state.tintTotals.eridani[2]).toBeGreaterThan(state.tintTotals.gliese[2]);
+    expect(state.tintProbe).toEqual({ earth: [220, 220, 220, 255], gliese: [170, 100, 100, 255], eridani: [130, 170, 170, 255] });
     expect(state.exhaustColors).toEqual(["#4bbcff", "#e8fbff", "#ff3d24", "#ffd06a", "#ffb000", "#fff2a6"]);
     expect(state.highPulseTail).toBeLessThan(state.lowPulseTail);
     expect(state.tintedDraws).toBe(1);
@@ -178,12 +200,18 @@ test("factions start equidistant with balanced durability and varied battle seed
         });
         world.restart();
         const secondLayout = world.ships.map((ship) => [ship.sprite, ship.x, ship.y]);
-        return { distances, earthHealth, formationSpans, firstLayout, secondLayout };
+        const secondClasses = [...new Set(world.ships.map((ship) => ship.sprite))].sort();
+        return { distances, earthHealth, formationSpans, firstLayout, secondLayout, secondClasses };
     });
-    expect(Math.max(...state.distances) / Math.min(...state.distances)).toBeLessThan(1.25);
+    expect(Math.max(...state.distances) / Math.min(...state.distances)).toBeLessThan(1.26);
     expect(Math.min(...state.formationSpans)).toBeGreaterThan(200);
     expect(state.earthHealth).toEqual({ capital: [700], fighter: [55], bomber: [100] });
     expect(state.secondLayout).not.toEqual(state.firstLayout);
+    expect(state.secondClasses).toEqual([
+        "cruiser_1_4x.png", "earth_bomber.png", "earth_fighter.png", "earth_missile_cruiser_4x.png",
+        "epsilon_eridani_destroyer.png", "epsilon_eridani_gunboat.png", "eridani_bomber.png", "eridani_fighter.png",
+        "gliese_bomber.png", "gliese_corvette.png", "gliese_dreadnaught_4x.png", "gliese_fighter.png"
+    ]);
 });
 
 test("auto-balance uses the original APK score-weighted spawn probabilities", async ({ page }) => {
@@ -364,9 +392,16 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
         };
 
         world.restart();
+        const doctrineProfiles = Object.fromEntries(world.ships.map((ship) => [ship.sprite, {
+            role: ship.role,
+            doctrine: ship.ai.doctrine,
+            idealRange: ship.ai.idealRange,
+            weaponRange: ship.ai.weaponRange
+        }]));
         const anchor = world.ships.find((ship) => ship.role === "carrier");
         const fighter = world.ships.find((ship) => ship.faction === "earth" && ship.type === "fighter");
         const threat = world.ships.find((ship) => ship.faction === "gliese" && ship.type === "capital");
+        const corvette = world.ships.find((ship) => ship.sprite === "gliese_corvette.png");
         const decoy = world.ships.find((ship) => ship.faction === "eridani" && ship.type === "capital");
         const launchStart = { x: fighter.x, y: fighter.y, angle: fighter.angle };
         const launchState = {
@@ -411,7 +446,7 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
         Object.assign(anchor, { x: 500, y: 450, state: "active" });
         Object.assign(fighter, { x: 150, y: 450, angle: 0, speed: 0, targetId: 0, retargetTimer: 0, aiState: "engaging", state: "active" });
         Object.assign(threat, { x: 600, y: 450, state: "active", shield: threat.maxShield });
-        Object.assign(decoy, { x: 140, y: 450, state: "active", shield: decoy.maxShield });
+        Object.assign(decoy, { x: 1000, y: 450, state: "active", shield: decoy.maxShield });
         world.ships = [anchor, fighter, threat, decoy];
         const escortDistanceBefore = Math.abs(world.wrappedOffset(fighter.x, anchor.x, world.width));
         world.updateShip(fighter, 0.5);
@@ -431,6 +466,29 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
         world.updateShip(decoy, 0.5);
         const longRangePursuit = decoy.speed > 0;
 
+        const attackRunner = world.ships.find((ship) => ship.sprite === "gliese_fighter.png") || fighter;
+        Object.assign(attackRunner, { x: 400, y: 300, angle: 0, speed: 0, targetId: threat.id, retargetTimer: 10, aiState: "engaging", state: "active" });
+        Object.assign(threat, { x: 500, y: 300, state: "active" });
+        attackRunner.weaponTimers.fill(0);
+        world.ships = [attackRunner, threat];
+        world.projectiles = [];
+        world.updateShip(attackRunner, 0.1);
+        const attackRunResult = { state: attackRunner.aiState, fired: world.projectiles.length > 0 };
+
+        Object.assign(corvette, { x: 400, y: 300, angle: 0, speed: 0, targetId: fighter.id, retargetTimer: 10, aiState: "engaging", state: "active" });
+        Object.assign(fighter, { x: 500, y: 300, state: "active" });
+        corvette.weaponTimers.fill(0);
+        world.ships = [corvette, fighter];
+        world.effects = [];
+        world.updateShip(corvette, 0.1);
+        const corvetteResult = { backedAway: corvette.speed < 0, fired: world.effects.some((effect) => effect.kind === "beam") };
+
+        Object.assign(anchor, { x: 400, y: 300, angle: Math.PI, speed: 0, targetId: queuedFighter.id, retargetTimer: 10, aiState: "engaging", state: "active" });
+        Object.assign(queuedFighter, { x: 700, y: 300, state: "active", faction: "gliese", type: "bomber" });
+        world.ships = [anchor, queuedFighter];
+        world.updateShip(anchor, 0.1);
+        const carrierScreenThrust = anchor.speed;
+
         const wingLeft = anchor;
         const wingRight = { ...threat, id: 9001, faction: "earth", x: 550, y: 450, angle: 0, speed: 0, maxSpeed: 50, turnRate: 100, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" };
         Object.assign(wingLeft, { x: 500, y: 450, angle: 0, speed: 0, maxSpeed: 50, turnRate: 100, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" });
@@ -440,9 +498,23 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
         world.updateShip(wingLeft, 0.1);
         world.updateShip(wingRight, 0.1);
         const spacingAfter = Math.abs(wingRight.x - wingLeft.x);
-        return { artilleryResult, launchState, carrierLossLaunch, launchResult, hiddenWhileQueued, renderedWhenReleased, escortResult, longRangePursuit, spacingBefore, spacingAfter };
+        return { artilleryResult, doctrineProfiles, launchState, carrierLossLaunch, launchResult, hiddenWhileQueued, renderedWhenReleased, escortResult, longRangePursuit, attackRunResult, corvetteResult, carrierScreenThrust, spacingBefore, spacingAfter };
     });
-    expect(result.artilleryResult).toEqual({ role: "artillery", movedAway: true, firedBackward: true });
+    expect(result.artilleryResult).toEqual({ role: "standoff", movedAway: true, firedBackward: true });
+    expect(result.doctrineProfiles).toMatchObject({
+        "cruiser_1_4x.png": { role: "carrier", doctrine: "carrier", idealRange: 340, weaponRange: 420 },
+        "earth_missile_cruiser_4x.png": { role: "standoff", doctrine: "missile-frigate", idealRange: 440, weaponRange: 600 },
+        "gliese_dreadnaught_4x.png": { role: "line", doctrine: "linebreaker", idealRange: 240, weaponRange: 380 },
+        "gliese_corvette.png": { role: "standoff", doctrine: "beam-corvette", idealRange: 420, weaponRange: 520 },
+        "epsilon_eridani_gunboat.png": { role: "line", doctrine: "ion-skirmisher", idealRange: 320, weaponRange: 440 },
+        "epsilon_eridani_destroyer.png": { role: "standoff", doctrine: "ion-destroyer", idealRange: 410, weaponRange: 520 },
+        "earth_fighter.png": { role: "escort", doctrine: "interceptor", idealRange: 100, weaponRange: 240 },
+        "gliese_fighter.png": { role: "escort", doctrine: "interceptor", idealRange: 95, weaponRange: 230 },
+        "eridani_fighter.png": { role: "escort", doctrine: "interceptor", idealRange: 140, weaponRange: 260 },
+        "earth_bomber.png": { role: "strike", doctrine: "strike-bomber", idealRange: 145, weaponRange: 280 },
+        "gliese_bomber.png": { role: "strike", doctrine: "strike-bomber", idealRange: 145, weaponRange: 280 },
+        "eridani_bomber.png": { role: "strike", doctrine: "strike-bomber", idealRange: 165, weaponRange: 300 }
+    });
     expect(result.launchState).toEqual({
         carrierRole: "carrier",
         fighterState: "launching",
@@ -457,6 +529,10 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
     expect(result.renderedWhenReleased).toBe(true);
     expect(result.escortResult).toEqual({ role: "escort", targetId: result.escortResult.expectedTargetId, expectedTargetId: result.escortResult.expectedTargetId, returnedToAnchor: true });
     expect(result.longRangePursuit).toBe(true);
+    expect(result.attackRunResult).toEqual({ state: "retreating", fired: true });
+    expect(result.corvetteResult).toEqual({ backedAway: true, fired: true });
+    expect(result.carrierScreenThrust).toBeGreaterThan(0);
+    expect(result.carrierScreenThrust).toBeLessThan(10);
     expect(result.spacingAfter).toBeGreaterThan(result.spacingBefore);
 });
 

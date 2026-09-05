@@ -31,9 +31,11 @@ wallpaper runtime features and have no desktop equivalent.
 - [x] Persistent faction scores and lifetime combat statistics
 - [x] APK-derived score-share and rank-transfer automatic faction balancing
 - [x] APK-derived hull, shield, movement, turn, mount, charge, damage, and AI parameters
-- [x] Desktop artillery, escort, and separation tactics around APK combat parameters
+- [x] Desktop standoff, nose-on reverse-thrust, escort, attack-run, and separation tactics around APK combat parameters
 - [x] Desktop Earth-carrier deployment of configured fighters without bonus units
-- [x] Cached faction hull tinting and pulsing faction-colored engine exhaust
+- [x] APK-exact multiplicative faction hull tinting and byte-identical ship assets
+- [x] All 12 enabled APK classes guaranteed in the default 6/12/6 roster
+- [x] Desktop pulsing engine exhaust, including user-selected yellow Eridani thrusters
 - [x] Unmodified APK score weighting validated with deterministic 120-battle evidence
 
 ## Acceptance Gates

@@ -12,7 +12,7 @@
         "shield_cruiser_class_4x.png", "shield_fighter_class.png", "shield_bomber_class.png", "missile2_4x.png",
         "warp.png", "laser_4x.png", "ball_laser_2x.png", "arc.png"
     ];
-    const FACTION_COLORS = { earth: "#f4f7fb", gliese: "#ff3028", eridani: "#278dff" };
+    const FACTION_COLORS = { earth: "#dcdcdc", gliese: "#aa6464", eridani: "#82aaaa" };
     const ENGINE_COLORS = {
         earth: { outer: "#4bbcff", inner: "#e8fbff" },
         gliese: { outer: "#ff3d24", inner: "#ffd06a" },
@@ -178,10 +178,11 @@
             const context = canvas.getContext("2d");
             context.imageSmoothingEnabled = false;
             context.drawImage(image, 0, 0);
-            context.globalCompositeOperation = "source-atop";
-            context.globalAlpha = faction === "earth" ? 0.28 : 0.42;
+            context.globalCompositeOperation = "multiply";
             context.fillStyle = color;
             context.fillRect(0, 0, canvas.width, canvas.height);
+            context.globalCompositeOperation = "destination-in";
+            context.drawImage(image, 0, 0);
             this.tintedImages.set(key, canvas);
             return canvas;
         }

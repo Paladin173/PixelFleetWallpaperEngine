@@ -69,11 +69,18 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
   requirement; the Android sector removes out-of-bounds projectiles.
 - Fleet movement adds desktop role tactics around the APK parameters: missile
   capitals maintain standoff range and can launch guided weapons independently
-  of heading, fighters defend and return to wider allied-capital stations, and
-  broader spawn dispersion plus class-scaled avoidance reduces stacked formations.
-- Cached per-pixel hull tinting identifies Earth in white, Gliese in red, and
-  Eridani in blue while retaining the original sprite detail. Pulsing
-  faction-colored exhaust is layered behind the APK engine textures.
+  of heading, forward-beam corvettes hold range with nose-on reverse thrust,
+  fighters fire before breaking from close attack runs, carriers withdraw
+  slowly from small craft, and broader spawn dispersion plus class-scaled
+  avoidance reduces stacked formations.
+- Hulls use the APK's `Sprite.setColor` multiplication values: Earth
+  `#dcdcdc`, Gliese `#aa6464`, and Eridani `#82aaaa`. The 24 ship and engine
+  PNGs are byte-identical to the APK assets. Pulsing exhaust is a desktop
+  adaptation; Eridani uses the user-selected yellow plume rather than the APK's
+  shared blue engine tint.
+- Default 6/12/6 battles seed every enabled APK class once before allocating
+  surplus slots, so all 12 classes remain visible instead of random capital
+  duplicates hiding one or more variants.
 - The APK exposes a hangar system but no recoverable in-battle fighter-launch
   call. As a desktop role enhancement, Earth cruisers deploy configured Earth
   fighters from their hull and become those fighters' preferred escort anchor;
@@ -86,7 +93,8 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
 - The APK score/rank transfer formula and spawn weights are preserved without
   faction-specific correction. With capital target acquisition fixed, the
   deterministic 120-battle role-aware sample completes without timeouts at
-  39/39/42 after staggered carrier deployment was added.
+  40 Earth / 32 Gliese / 48 Eridani after all-class seeding and naval doctrine
+  were added.
 - Complex per-pixel hull circles and individual component hit locations are
   represented by class collision radii and aggregate shield, engine, and weapon
   health.
@@ -99,4 +107,5 @@ also exercises first-contact collision, missile reacquisition, ion disable and
 recovery, active-only shield interception, shield collapse delay, asteroid
 damage bonuses, explosion area damage, damaging debris, subsystem-stat ownership,
 and Eridani secondary switching. The 25-test suite passes, and a 120-battle
-runtime sample reports zero timeouts and zero non-finite ship values.
+runtime sample reports every battle completed, all 12 classes in every initial
+roster, and zero non-finite ship values.

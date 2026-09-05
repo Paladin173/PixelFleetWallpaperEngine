@@ -428,21 +428,21 @@
             "gliese_settings": {
                 "index": 36,
                 "order": 136,
-                "text": "<hr><h3>Gliese Fleet</h3><hr>",
+                "text": "<hr><h3>Gliese 581 system</h3><hr>",
                 "type": "bool",
                 "value": false
             },
             "spawngliesecorvette": {
-                "index": 37,
-                "order": 137,
+                "index": 38,
+                "order": 138,
                 "condition": "gliese_settings.value",
                 "text": "Corvette",
                 "type": "bool",
                 "value": true
             },
             "spawngliesedreadnaught": {
-                "index": 38,
-                "order": 138,
+                "index": 37,
+                "order": 137,
                 "condition": "gliese_settings.value",
                 "text": "Dreadnaught",
                 "type": "bool",
@@ -467,7 +467,7 @@
             "eridani_settings": {
                 "index": 41,
                 "order": 141,
-                "text": "<hr><h3>Eridani Fleet</h3><hr>",
+                "text": "<hr><h3>Epsilon Eridani system</h3><hr>",
                 "type": "bool",
                 "value": false
             },

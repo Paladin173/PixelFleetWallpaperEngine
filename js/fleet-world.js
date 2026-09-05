@@ -9,27 +9,27 @@
     });
     const CAPITALS = {
         earth: [
-            ship("cruiser_1_4x.png", "cruiser_1_engine_4x.png", 700, 0.1, 0.025, 200, 0.5, { preferHullDamage: true, randomWeapons: true, carrier: true }),
-            ship("earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 700, 0.05, 0.02, 200, 0.5, { preferHullDamage: true })
+            ship("cruiser_1_4x.png", "cruiser_1_engine_4x.png", 700, 0.1, 0.025, 200, 0.5, { preferHullDamage: true, randomWeapons: true, carrier: true, doctrine: "carrier", idealRange: 340, weaponRange: 420 }),
+            ship("earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 700, 0.05, 0.02, 200, 0.5, { preferHullDamage: true, preferCapital: true, standoff: true, doctrine: "missile-frigate", idealRange: 440, weaponRange: 600 })
         ],
         gliese: [
-            ship("gliese_dreadnaught_4x.png", "gliese_dreadnaught_engine_4x.png", 500, 0.05, 0.03, 200, -Infinity, { straightAttackPath: true, focusEngage: true }),
-            ship("gliese_corvette.png", "gliese_corvette_engine.png", 500, 0.07, 0.03, 200, -Infinity, { straightAttackPath: true, focusEngage: true })
+            ship("gliese_dreadnaught_4x.png", "gliese_dreadnaught_engine_4x.png", 500, 0.05, 0.03, 200, -Infinity, { straightAttackPath: true, focusEngage: true, doctrine: "linebreaker", idealRange: 240, weaponRange: 380 }),
+            ship("gliese_corvette.png", "gliese_corvette_engine.png", 500, 0.07, 0.03, 200, -Infinity, { straightAttackPath: true, focusEngage: true, preferCapital: true, standoff: true, faceTarget: true, doctrine: "beam-corvette", idealRange: 420, weaponRange: 520 })
         ],
         eridani: [
-            ship("epsilon_eridani_gunboat.png", "epsilon_eridani_gunboat_engine.png", 290, 0.1, 0.04, 270, 0.75, { keepDistance: true }),
-            ship("epsilon_eridani_destroyer.png", "epsilon_eridani_destroyer_engine.png", 350, 0.04, 0.025, 250, 0.5)
+            ship("epsilon_eridani_gunboat.png", "epsilon_eridani_gunboat_engine.png", 290, 0.1, 0.04, 270, 0.75, { keepDistance: true, doctrine: "ion-skirmisher", idealRange: 320, weaponRange: 440 }),
+            ship("epsilon_eridani_destroyer.png", "epsilon_eridani_destroyer_engine.png", 350, 0.04, 0.025, 250, 0.5, { standoff: true, doctrine: "ion-destroyer", idealRange: 410, weaponRange: 520 })
         ]
     };
     const FIGHTERS = {
-        earth: ship("earth_fighter.png", "earth_fighter_engine.png", 55, 0.3, 0.1, 20, 0.5, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
-        gliese: ship("gliese_fighter.png", "gliese_fighter_engine.png", 50, 0.2, 0.11, 20, -Infinity, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
-        eridani: ship("eridani_fighter.png", "eridani_fighter_engine.png", 40, 0.14, 0.07, 40, 0.5, { preferHullDamage: true, keepDistance: true })
+        earth: ship("earth_fighter.png", "earth_fighter_engine.png", 55, 0.3, 0.1, 20, 0.5, { preferHullDamage: true, straightAttackPath: true, attackRuns: true, doctrine: "interceptor", idealRange: 100, weaponRange: 240 }),
+        gliese: ship("gliese_fighter.png", "gliese_fighter_engine.png", 50, 0.2, 0.11, 20, -Infinity, { preferHullDamage: true, straightAttackPath: true, attackRuns: true, doctrine: "interceptor", idealRange: 95, weaponRange: 230 }),
+        eridani: ship("eridani_fighter.png", "eridani_fighter_engine.png", 40, 0.14, 0.07, 40, 0.5, { preferHullDamage: true, keepDistance: true, doctrine: "interceptor", idealRange: 140, weaponRange: 260 })
     };
     const BOMBERS = {
-        earth: ship("earth_bomber.png", "earth_bomber_engine.png", 100, 0.08, 0.04, 40, 0.5, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
-        gliese: ship("gliese_bomber.png", "gliese_bomber_engine.png", 100, 0.08, 0.04, 40, -Infinity, { preferHullDamage: true, straightAttackPath: true, attackRuns: true }),
-        eridani: ship("eridani_bomber.png", "eridani_bomber_engine.png", 75, 0.08, 0.04, 60, 0.5, { preferHullDamage: true })
+        earth: ship("earth_bomber.png", "earth_bomber_engine.png", 100, 0.08, 0.04, 40, 0.5, { preferHullDamage: true, preferCapital: true, straightAttackPath: true, attackRuns: true, doctrine: "strike-bomber", idealRange: 145, weaponRange: 280 }),
+        gliese: ship("gliese_bomber.png", "gliese_bomber_engine.png", 100, 0.08, 0.04, 40, -Infinity, { preferHullDamage: true, preferCapital: true, straightAttackPath: true, attackRuns: true, doctrine: "strike-bomber", idealRange: 145, weaponRange: 280 }),
+        eridani: ship("eridani_bomber.png", "eridani_bomber_engine.png", 75, 0.08, 0.04, 60, 0.5, { preferHullDamage: true, preferCapital: true, doctrine: "strike-bomber", idealRange: 165, weaponRange: 300 })
     };
     const WEAPON_BATTERIES = {
         "cruiser_1_4x.png": [{ weapon: "beam", count: 1, damage: 14.4, cooldown: 1.5, mount: "turret" }, { weapon: "laser", count: 4, damage: 6, cooldown: 0.5, mount: "turret" }],
@@ -115,6 +115,7 @@
             this.decorations = [];
             this.spaceDust = [];
             this.nextId = 1;
+            this.spawnVariantCounts = {};
             this.slowScale = 1;
             this.battleState = "active";
             this.battleTimer = 0;
@@ -158,6 +159,7 @@
             this.decorations.length = 0;
             this.spaceDust.length = 0;
             this.nextId = 1;
+            this.spawnVariantCounts = {};
             this.battleState = "active";
             this.battleTimer = 0;
             this.battleNumber += 1;
@@ -221,7 +223,20 @@
 
         spawnGroup(type, count) {
             const limit = type === "fighter" ? 30 : 20;
-            for (let index = 0; index < Math.max(0, Math.min(limit, count)); index += 1) {
+            const targetCount = Math.max(0, Math.min(limit, count));
+            const definitionsByFaction = Object.fromEntries(FACTIONS.map((faction) => [faction, this.definitionsFor(type, faction)]));
+            const roster = [];
+            const maximumVariants = Math.max(0, ...Object.values(definitionsByFaction).map((definitions) => definitions.length));
+            for (let variant = 0; variant < maximumVariants; variant += 1) {
+                for (const faction of FACTIONS) {
+                    if (definitionsByFaction[faction].length > variant) roster.push(faction);
+                }
+            }
+            let index = 0;
+            for (; index < Math.min(targetCount, roster.length); index += 1) {
+                if (!this.spawnShip(type, roster[index])) break;
+            }
+            for (; index < targetCount; index += 1) {
                 const faction = this.chooseFaction(type, index);
                 if (!faction || !this.spawnShip(type, faction)) break;
             }
@@ -271,7 +286,10 @@
         spawnShip(type, faction) {
             const definitions = this.definitionsFor(type, faction);
             if (!definitions.length) return false;
-            const definition = this.random.pick(definitions);
+            const variantKey = `${type}:${faction}`;
+            const variantIndex = this.spawnVariantCounts[variantKey] || 0;
+            const definition = definitions[variantIndex % definitions.length];
+            this.spawnVariantCounts[variantKey] = variantIndex + 1;
             const originAngle = this.factionOriginAngles[faction];
             const radius = Math.min(this.width, this.height) * 0.38;
             const spread = Math.min(this.width, this.height) * 0.15;
@@ -296,7 +314,7 @@
             }
             this.ships.push({
                 id: this.nextId++, type, faction, sprite: definition.sprite, engine: definition.engine,
-                role: definition.carrier ? "carrier" : type === "fighter" ? "escort" : type === "capital" && batteries.some((battery) => battery.weapon === "missile") ? "artillery" : "line",
+                role: definition.carrier ? "carrier" : definition.standoff ? "standoff" : type === "fighter" ? "escort" : type === "bomber" ? "strike" : "line",
                 x, y, angle, speed: carrier ? definition.speed * 0.35 : definition.speed, maxSpeed: definition.speed, turnRate: definition.turnRate,
                 health: definition.hull, maxHealth: definition.hull, shield: definition.shield, maxShield: definition.shield,
                 shieldRechargeDelay: 0,
@@ -404,10 +422,8 @@
             const offsetY = this.wrappedOffset(ship.y, target.y, this.height);
             const distance = Math.hypot(offsetX, offsetY) || 1;
             const desired = Math.atan2(offsetY, offsetX);
-            if (ship.ai.attackRuns && target.type === "capital" && ship.aiState === "engaging" && distance < ship.ai.attackRunDistance) {
-                ship.attackRun = true;
-                ship.aiState = "retreating";
-            }
+            const beginAttackRun = ship.ai.attackRuns && target.type === "capital"
+                && ship.aiState === "engaging" && distance < ship.ai.attackRunDistance;
             if (ship.aiState === "retreating") {
                 if (ship.attackRun && distance >= 400 * Math.sqrt(1.2)) {
                     ship.attackRun = false;
@@ -420,7 +436,7 @@
             }
             let navigationX = offsetX;
             let navigationY = offsetY;
-            let idealRange = ship.ai.keepDistance ? 295 : ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130;
+            let idealRange = ship.ai.idealRange ?? (ship.ai.keepDistance ? 295 : ship.type === "capital" ? 260 : ship.type === "bomber" ? 210 : 130);
             const escortAnchor = ship.role === "escort" ? this.findEscortAnchor(ship) : null;
             if (escortAnchor) {
                 const anchorX = this.wrappedOffset(ship.x, escortAnchor.x, this.width);
@@ -429,7 +445,8 @@
                 const targetFromAnchorY = this.wrappedOffset(escortAnchor.y, target.y, this.height);
                 const threatDistance = Math.hypot(targetFromAnchorX, targetFromAnchorY);
                 const escortDistance = Math.hypot(anchorX, anchorY);
-                if (threatDistance > 420 || escortDistance > 300) {
+                const assignedByAnchor = target.id === escortAnchor.targetId;
+                if ((!assignedByAnchor && threatDistance > 420) || escortDistance > 300) {
                     const slotAngle = ship.id * 2.399963229728653;
                     navigationX = anchorX + Math.cos(slotAngle) * 150;
                     navigationY = anchorY + Math.sin(slotAngle) * 150;
@@ -437,15 +454,19 @@
                 } else {
                     idealRange = 150;
                 }
-            } else if (ship.role === "artillery" || ship.role === "carrier") {
-                idealRange = ship.role === "carrier" ? 340 : 360;
+            } else if (ship.role === "standoff" || ship.role === "carrier") {
                 if (distance < idealRange * 0.9) {
-                    navigationX = -offsetX;
-                    navigationY = -offsetY;
+                    navigationX = ship.ai.faceTarget ? offsetX : -offsetX;
+                    navigationY = ship.ai.faceTarget ? offsetY : -offsetY;
                 } else if (distance <= idealRange * 1.1) {
-                    const orbitDirection = ship.id % 2 ? 1 : -1;
-                    navigationX = -offsetY * orbitDirection;
-                    navigationY = offsetX * orbitDirection;
+                    if (ship.ai.faceTarget) {
+                        navigationX = offsetX;
+                        navigationY = offsetY;
+                    } else {
+                        const orbitDirection = ship.id % 2 ? 1 : -1;
+                        navigationX = -offsetY * orbitDirection;
+                        navigationY = offsetX * orbitDirection;
+                    }
                 }
             } else if (!ship.ai.straightAttackPath && distance < 320) {
                 const approachAngle = desired + Math.PI / 4;
@@ -472,9 +493,15 @@
             const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : navigationAngle;
             let angleDelta = ((targetAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI;
             ship.angle += Math.max(-ship.turnRate * delta, Math.min(ship.turnRate * delta, angleDelta));
-            const thrust = ship.aiState === "retreating" || ship.role === "artillery" || ship.role === "carrier" || escortAnchor
+            const holdsRange = (ship.role === "standoff" || ship.role === "carrier")
+                && distance >= idealRange * 0.9 && distance <= idealRange * 1.1;
+            const backsAway = ship.role === "standoff" && ship.ai.faceTarget && distance < idealRange * 0.9;
+            const screensSmallCraft = ship.role === "carrier" && target.type !== "capital" && distance < idealRange * 0.9;
+            const thrust = ship.aiState === "retreating" || escortAnchor
                 ? 1
-                : navigationGoalDistance > idealRange ? 1 : navigationGoalDistance < idealRange * 0.55 ? -0.35 : 0.2;
+                : backsAway ? -0.35 : holdsRange || screensSmallCraft ? 0.15 : ship.role === "standoff" || ship.role === "carrier"
+                    ? 1
+                    : navigationGoalDistance > idealRange ? 1 : navigationGoalDistance < idealRange * 0.55 ? -0.35 : 0.2;
             const engineFactor = 0.35 + ship.systems.engine / 100 * 0.65;
             ship.speed += (ship.maxSpeed * engineFactor * thrust - ship.speed) * Math.min(1, delta * 2.5);
             ship.x += Math.cos(ship.angle) * ship.speed * delta;
@@ -486,8 +513,12 @@
                 const rechargeRate = ship.type === "capital" ? 20 : ship.type === "bomber" ? 10 : 5;
                 ship.shield = Math.min(ship.maxShield, ship.shield + rechargeRate * (ship.systems.shields / 100) * delta);
             }
-            const weaponRange = ship.role === "artillery" ? 500 : 400;
+            const weaponRange = ship.ai.weaponRange ?? 400;
             if (ship.aiState === "engaging" && ship.systems.weapons > 0 && distance < weaponRange) this.updateWeaponSystems(ship, target, desired);
+            if (beginAttackRun) {
+                ship.attackRun = true;
+                ship.aiState = "retreating";
+            }
             ship.fireTimer = Math.min(...ship.weaponTimers);
             ship.enginePulse += delta * 8;
         }
@@ -497,7 +528,7 @@
             const escortAnchor = ship.role === "escort" ? this.findEscortAnchor(ship) : null;
             let closest = null;
             let closestDistance = Infinity;
-            let closestThreatensAnchor = false;
+            let closestPriority = -1;
             for (const candidate of this.ships) {
                 if (candidate === ship || !["active", "disabled"].includes(candidate.state)) continue;
                 if (!freeForAll && candidate.faction === ship.faction) continue;
@@ -507,15 +538,15 @@
                 const threatensAnchor = Boolean(escortAnchor && Math.hypot(
                     this.wrappedOffset(escortAnchor.x, candidate.x, this.width),
                     this.wrappedOffset(escortAnchor.y, candidate.y, this.height)
-                ) <= 340);
-                const candidatePreferred = Boolean(ship.ai.preferHullDamage && candidate.shield <= 0);
-                const closestPreferred = Boolean(closest && ship.ai.preferHullDamage && closest.shield <= 0);
-                if ((!closestThreatensAnchor && threatensAnchor)
-                    || (threatensAnchor === closestThreatensAnchor && ((!closestPreferred && candidatePreferred)
-                    || (candidatePreferred === closestPreferred && distance < closestDistance)))) {
+                ) <= 420);
+                const priority = (threatensAnchor ? 8 : 0)
+                    + (ship.ai.preferCapital && candidate.type === "capital" ? 4 : 0)
+                    + (ship.ai.preferShielded && candidate.shield > 0 ? 2 : 0)
+                    + (ship.ai.preferHullDamage && candidate.shield <= 0 ? 1 : 0);
+                if (priority > closestPriority || (priority === closestPriority && distance < closestDistance)) {
                     closest = candidate;
                     closestDistance = distance;
-                    closestThreatensAnchor = threatensAnchor;
+                    closestPriority = priority;
                 }
             }
             return closest;
