@@ -12,13 +12,19 @@
         "shield_cruiser_class_4x.png", "shield_fighter_class.png", "shield_bomber_class.png", "missile2_4x.png",
         "warp.png", "laser_4x.png", "ball_laser_2x.png", "arc.png"
     ];
-    const FACTION_COLORS = { earth: "#f4f7fb", gliese: "#ff4138", eridani: "#359dff" };
+    const FACTION_COLORS = { earth: "#f4f7fb", gliese: "#ff3028", eridani: "#278dff" };
+    const ENGINE_COLORS = {
+        earth: { outer: "#4bbcff", inner: "#e8fbff" },
+        gliese: { outer: "#ff3d24", inner: "#ffd06a" },
+        eridani: { outer: "#386cff", inner: "#a9e6ff" }
+    };
 
     class CanvasRenderer {
         constructor(canvas) {
             this.canvas = canvas;
             this.context = canvas.getContext("2d", { alpha: false, desynchronized: true });
             this.images = new Map();
+            this.tintedImages = new Map();
             this.quality = "auto";
             this.cssWidth = 1;
             this.cssHeight = 1;
@@ -102,6 +108,7 @@
         }
 
         drawShip(context, ship, world) {
+            if (ship.state === "launching" && ship.launchDelay > 0) return;
             const horizontalOffsets = [0];
             const verticalOffsets = [0];
             const margin = ship.radius * 5;
@@ -117,39 +124,72 @@
         drawShipAt(context, ship, x, y) {
             const pulse = 0.72 + Math.sin(ship.enginePulse) * 0.2;
             if (ship.state === "warping") this.drawWarp(context, x, y, ship.angle, ship.radius, pulse);
-            if (ship.state === "active" || ship.state === "warping") this.drawSprite(context, ship.engine, x, y, ship.angle + Math.PI / 2, null, pulse);
+            if (["active", "launching", "warping"].includes(ship.state)) this.drawEngineExhaust(context, ship, x, y, pulse);
+            if (["active", "launching", "warping"].includes(ship.state)) this.drawSprite(context, ship.engine, x, y, ship.angle + Math.PI / 2, null, pulse);
             const alpha = ship.state === "exploding" ? Math.max(0, 1 - ship.deathTimer / 0.9) : 1;
-            this.drawSprite(context, ship.sprite, x, y, ship.angle + Math.PI / 2, null, alpha);
-            this.drawFactionMarkings(context, ship, x, y, alpha);
+            this.drawTintedSprite(context, ship.sprite, ship.faction, x, y, ship.angle + Math.PI / 2, null, alpha);
             if (ship.shield < ship.maxShield && ship.shield > 0) {
                 const shieldName = ship.type === "capital" ? "shield_cruiser_class_4x.png" : ship.type === "bomber" ? "shield_bomber_class.png" : "shield_fighter_class.png";
                 this.drawSprite(context, shieldName, x, y, ship.angle + Math.PI / 2, ship.radius * 2.45, 0.1 + 0.18 * (ship.shield / ship.maxShield), true);
             }
         }
 
-        drawFactionMarkings(context, ship, x, y, alpha) {
-            const color = FACTION_COLORS[ship.faction];
-            if (!color) return;
-            const width = Math.max(7, ship.radius * 0.8);
-            const length = Math.max(8, ship.radius * 1.05);
-            const height = Math.max(2, Math.min(4, ship.radius * 0.16));
-            const offset = ship.radius * 0.68;
+        drawEngineExhaust(context, ship, x, y, pulse) {
+            const colors = ENGINE_COLORS[ship.faction] || ENGINE_COLORS.earth;
+            const throttle = Math.min(1.5, Math.abs(ship.speed) / Math.max(1, ship.maxSpeed));
+            const warpScale = ship.state === "warping" ? 2.2 : 1;
+            const length = ship.radius * (0.7 + throttle * 0.8) * pulse * warpScale;
+            const nozzleX = -ship.radius * 0.62;
+            const nozzleOffsets = ship.type === "fighter" ? [0] : [-ship.radius * 0.28, ship.radius * 0.28];
             context.save();
             context.translate(x, y);
             context.rotate(ship.angle);
             context.globalCompositeOperation = "lighter";
-            context.globalAlpha = alpha * 0.9;
-            context.fillStyle = color;
-            context.fillRect(-length * 0.45, -height / 2, length, height);
-            context.fillRect(-width / 2, -offset - height / 2, width, height);
-            context.fillRect(-width / 2, offset - height / 2, width, height);
-            context.beginPath();
-            context.moveTo(ship.radius * 0.9, 0);
-            context.lineTo(ship.radius * 0.55, -height * 1.5);
-            context.lineTo(ship.radius * 0.55, height * 1.5);
-            context.closePath();
-            context.fill();
+            for (const offset of nozzleOffsets) {
+                context.globalAlpha = 0.48 + pulse * 0.25;
+                context.fillStyle = colors.outer;
+                context.beginPath();
+                context.moveTo(nozzleX, offset - ship.radius * 0.16);
+                context.lineTo(nozzleX - length, offset);
+                context.lineTo(nozzleX, offset + ship.radius * 0.16);
+                context.closePath();
+                context.fill();
+                context.globalAlpha = 0.8;
+                context.fillStyle = colors.inner;
+                context.beginPath();
+                context.moveTo(nozzleX, offset - ship.radius * 0.07);
+                context.lineTo(nozzleX - length * 0.58, offset);
+                context.lineTo(nozzleX, offset + ship.radius * 0.07);
+                context.closePath();
+                context.fill();
+            }
             context.restore();
+        }
+
+        tintedSprite(name, faction) {
+            const image = this.images.get(name);
+            const color = FACTION_COLORS[faction];
+            if (!image || !color) return image;
+            const key = `${name}:${faction}`;
+            if (this.tintedImages.has(key)) return this.tintedImages.get(key);
+            const canvas = document.createElement("canvas");
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const context = canvas.getContext("2d");
+            context.imageSmoothingEnabled = false;
+            context.drawImage(image, 0, 0);
+            context.globalCompositeOperation = "source-atop";
+            context.globalAlpha = faction === "earth" ? 0.28 : 0.42;
+            context.fillStyle = color;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            this.tintedImages.set(key, canvas);
+            return canvas;
+        }
+
+        drawTintedSprite(context, name, faction, x, y, angle, targetSize, alpha) {
+            const image = this.tintedSprite(name, faction);
+            if (!image) return;
+            this.drawImage(context, image, x, y, angle, targetSize, alpha);
         }
 
         drawWarp(context, x, y, angle, radius, alpha) {
@@ -385,6 +425,10 @@
         drawSprite(context, name, x, y, angle, targetSize, alpha, additive) {
             const image = this.images.get(name);
             if (!image) return;
+            this.drawImage(context, image, x, y, angle, targetSize, alpha, additive);
+        }
+
+        drawImage(context, image, x, y, angle, targetSize, alpha, additive) {
             let width = image.width;
             let height = image.height;
             if (targetSize) {

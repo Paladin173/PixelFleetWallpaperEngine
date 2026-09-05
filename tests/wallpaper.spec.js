@@ -81,34 +81,61 @@ test("default scene renders the original starfield and all fleet classes", async
         for (let index = 0; index < pixels.length; index += 64) {
             if (pixels[index] || pixels[index + 1] || pixels[index + 2]) litPixels += 1;
         }
-        const factionMarkingColors = [];
-        const originalFillRect = app.renderer.context.fillRect;
-        const originalFill = app.renderer.context.fill;
-        let factionMarkingRectangles = 0;
-        let factionMarkingChevrons = 0;
-        app.renderer.context.fillRect = function (...args) {
-            factionMarkingColors.push(this.fillStyle);
-            factionMarkingRectangles += 1;
-            return originalFillRect.apply(this, args);
-        };
-        app.renderer.context.fill = function (...args) {
-            factionMarkingChevrons += 1;
-            return originalFill.apply(this, args);
+        const sprite = app.world.ships.find((ship) => ship.type === "capital").sprite;
+        const tintTotals = {};
+        for (const faction of ["earth", "gliese", "eridani"]) {
+            const tinted = app.renderer.tintedSprite(sprite, faction);
+            const data = tinted.getContext("2d").getImageData(0, 0, tinted.width, tinted.height).data;
+            const totals = [0, 0, 0];
+            for (let index = 0; index < data.length; index += 4) {
+                if (!data[index + 3]) continue;
+                totals[0] += data[index];
+                totals[1] += data[index + 1];
+                totals[2] += data[index + 2];
+            }
+            tintTotals[faction] = totals;
+        }
+        const cacheReused = app.renderer.tintedSprite(sprite, "gliese") === app.renderer.tintedSprite(sprite, "gliese");
+        const exhaustContext = {
+            fillStyles: [], points: [], fillStyle: "", globalAlpha: 1, globalCompositeOperation: "source-over",
+            save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, closePath() {},
+            moveTo(x, y) { this.points.push([x, y]); }, lineTo(x, y) { this.points.push([x, y]); },
+            fill() { this.fillStyles.push(this.fillStyle); }
         };
         for (const faction of ["earth", "gliese", "eridani"]) {
-            app.renderer.drawFactionMarkings(app.renderer.context, { faction, radius: 20, angle: 0 }, 40, 40, 1);
+            app.renderer.drawEngineExhaust(exhaustContext, {
+                faction, radius: 20, type: "capital", state: "active", speed: 100, maxSpeed: 100
+            }, 40, 40, 0.8);
         }
-        app.renderer.context.fillRect = originalFillRect;
-        app.renderer.context.fill = originalFill;
+        const lowPulseContext = { ...exhaustContext, fillStyles: [], points: [] };
+        const highPulseContext = { ...exhaustContext, fillStyles: [], points: [] };
+        const engineShip = { faction: "gliese", radius: 20, type: "fighter", state: "active", speed: 100, maxSpeed: 100 };
+        app.renderer.drawEngineExhaust(lowPulseContext, engineShip, 0, 0, 0.55);
+        app.renderer.drawEngineExhaust(highPulseContext, engineShip, 0, 0, 0.95);
+        const ship = app.world.ships[0];
+        let tintedDraws = 0;
+        let exhaustDraws = 0;
+        const originalTintedDraw = app.renderer.drawTintedSprite.bind(app.renderer);
+        const originalExhaustDraw = app.renderer.drawEngineExhaust.bind(app.renderer);
+        app.renderer.drawTintedSprite = (...args) => { tintedDraws += 1; originalTintedDraw(...args); };
+        app.renderer.drawEngineExhaust = (...args) => { exhaustDraws += 1; originalExhaustDraw(...args); };
+        app.renderer.drawShipAt(app.renderer.context, ship, ship.x, ship.y);
+        app.renderer.drawTintedSprite = originalTintedDraw;
+        app.renderer.drawEngineExhaust = originalExhaustDraw;
         return {
             litPixels,
             shipCount: app.world.ships.length,
             types: [...new Set(app.world.ships.map((ship) => ship.type))],
             factions: [...new Set(app.world.ships.map((ship) => ship.faction))],
             loadedAssets: app.renderer.images.size,
-            factionMarkingColors: [...new Set(factionMarkingColors)],
-            factionMarkingRectangles,
-            factionMarkingChevrons
+            hasMarkerOverlay: typeof app.renderer.drawFactionMarkings === "function",
+            tintTotals,
+            cacheReused,
+            exhaustColors: [...new Set(exhaustContext.fillStyles)],
+            lowPulseTail: Math.min(...lowPulseContext.points.map(([x]) => x)),
+            highPulseTail: Math.min(...highPulseContext.points.map(([x]) => x)),
+            tintedDraws,
+            exhaustDraws
         };
     });
     expect(state.litPixels).toBeGreaterThan(1000);
@@ -116,9 +143,14 @@ test("default scene renders the original starfield and all fleet classes", async
     expect(state.types.sort()).toEqual(["bomber", "capital", "fighter"]);
     expect(state.factions.sort()).toEqual(["earth", "eridani", "gliese"]);
     expect(state.loadedAssets).toBe(44);
-    expect(state.factionMarkingColors).toEqual(["#f4f7fb", "#ff4138", "#359dff"]);
-    expect(state.factionMarkingRectangles).toBe(9);
-    expect(state.factionMarkingChevrons).toBe(3);
+    expect(state.hasMarkerOverlay).toBe(false);
+    expect(state.cacheReused).toBe(true);
+    expect(state.tintTotals.gliese[0]).toBeGreaterThan(state.tintTotals.eridani[0]);
+    expect(state.tintTotals.eridani[2]).toBeGreaterThan(state.tintTotals.gliese[2]);
+    expect(state.exhaustColors).toEqual(["#4bbcff", "#e8fbff", "#ff3d24", "#ffd06a", "#386cff", "#a9e6ff"]);
+    expect(state.highPulseTail).toBeLessThan(state.lowPulseTail);
+    expect(state.tintedDraws).toBe(1);
+    expect(state.exhaustDraws).toBe(1);
 });
 
 test("factions start equidistant with balanced durability and varied battle seeds", async ({ page }) => {
@@ -332,12 +364,52 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
         };
 
         world.restart();
-        const anchor = world.ships.find((ship) => ship.faction === "earth" && ship.type === "capital");
+        const anchor = world.ships.find((ship) => ship.role === "carrier");
         const fighter = world.ships.find((ship) => ship.faction === "earth" && ship.type === "fighter");
         const threat = world.ships.find((ship) => ship.faction === "gliese" && ship.type === "capital");
         const decoy = world.ships.find((ship) => ship.faction === "eridani" && ship.type === "capital");
+        const launchStart = { x: fighter.x, y: fighter.y, angle: fighter.angle };
+        const launchState = {
+            carrierRole: anchor.role,
+            fighterState: fighter.state,
+            carrierId: fighter.carrierId,
+            expectedCarrierId: anchor.id,
+            startsAtCarrier: Math.hypot(fighter.x - anchor.x, fighter.y - anchor.y) < anchor.radius,
+            queuedFighters: world.ships.filter((ship) => ship.carrierId === anchor.id && ship.launchDelay > 0).length
+        };
+        const queuedFighter = world.ships.find((ship) => ship.carrierId === anchor.id && ship.launchDelay > 0);
+        const queuedStart = { x: queuedFighter.x, y: queuedFighter.y };
+        anchor.state = "exploding";
+        world.updateShip(queuedFighter, 0.1);
+        const carrierLossLaunch = {
+            delay: queuedFighter.launchDelay,
+            moved: Math.hypot(queuedFighter.x - queuedStart.x, queuedFighter.y - queuedStart.y) > 0
+        };
+        anchor.state = "active";
+        world.updateShip(fighter, fighter.launchTimer + 0.1);
+        const launchResult = {
+            state: fighter.state,
+            movedForward: (fighter.x - launchStart.x) * Math.cos(launchStart.angle)
+                + (fighter.y - launchStart.y) * Math.sin(launchStart.angle) > 0,
+            escortAnchorId: world.findEscortAnchor(fighter)?.id
+        };
+        const renderer = window.pixelFleetApp.renderer;
+        let renderedHulls = 0;
+        let renderedExhaust = 0;
+        const originalTintedDraw = renderer.drawTintedSprite.bind(renderer);
+        const originalExhaustDraw = renderer.drawEngineExhaust.bind(renderer);
+        renderer.drawTintedSprite = () => { renderedHulls += 1; };
+        renderer.drawEngineExhaust = () => { renderedExhaust += 1; };
+        queuedFighter.launchDelay = 1;
+        renderer.drawShip(renderer.context, queuedFighter, world);
+        const hiddenWhileQueued = renderedHulls === 0 && renderedExhaust === 0;
+        queuedFighter.launchDelay = 0;
+        renderer.drawShip(renderer.context, queuedFighter, world);
+        renderer.drawTintedSprite = originalTintedDraw;
+        renderer.drawEngineExhaust = originalExhaustDraw;
+        const renderedWhenReleased = renderedHulls === 1 && renderedExhaust === 1;
         Object.assign(anchor, { x: 500, y: 450, state: "active" });
-        Object.assign(fighter, { x: 150, y: 450, angle: 0, speed: 0, targetId: 0, retargetTimer: 0, aiState: "engaging" });
+        Object.assign(fighter, { x: 150, y: 450, angle: 0, speed: 0, targetId: 0, retargetTimer: 0, aiState: "engaging", state: "active" });
         Object.assign(threat, { x: 600, y: 450, state: "active", shield: threat.maxShield });
         Object.assign(decoy, { x: 140, y: 450, state: "active", shield: decoy.maxShield });
         world.ships = [anchor, fighter, threat, decoy];
@@ -360,17 +432,29 @@ test("fleet roles preserve artillery standoff, fighter escort, and allied spacin
         const longRangePursuit = decoy.speed > 0;
 
         const wingLeft = anchor;
-        const wingRight = { ...threat, id: 9001, faction: "earth", x: 550, y: 450, angle: 0, speed: 0, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" };
-        Object.assign(wingLeft, { x: 500, y: 450, angle: 0, speed: 0, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" });
+        const wingRight = { ...threat, id: 9001, faction: "earth", x: 550, y: 450, angle: 0, speed: 0, maxSpeed: 50, turnRate: 100, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" };
+        Object.assign(wingLeft, { x: 500, y: 450, angle: 0, speed: 0, maxSpeed: 50, turnRate: 100, role: "line", targetId: decoy.id, retargetTimer: 10, aiState: "engaging" });
         Object.assign(decoy, { x: 1000, y: 450 });
         world.ships = [wingLeft, wingRight, decoy];
         const spacingBefore = Math.abs(wingRight.x - wingLeft.x);
-        world.updateShip(wingLeft, 0.5);
-        world.updateShip(wingRight, 0.5);
+        world.updateShip(wingLeft, 0.1);
+        world.updateShip(wingRight, 0.1);
         const spacingAfter = Math.abs(wingRight.x - wingLeft.x);
-        return { artilleryResult, escortResult, longRangePursuit, spacingBefore, spacingAfter };
+        return { artilleryResult, launchState, carrierLossLaunch, launchResult, hiddenWhileQueued, renderedWhenReleased, escortResult, longRangePursuit, spacingBefore, spacingAfter };
     });
     expect(result.artilleryResult).toEqual({ role: "artillery", movedAway: true, firedBackward: true });
+    expect(result.launchState).toEqual({
+        carrierRole: "carrier",
+        fighterState: "launching",
+        carrierId: result.launchState.expectedCarrierId,
+        expectedCarrierId: result.launchState.expectedCarrierId,
+        startsAtCarrier: true,
+        queuedFighters: 3
+    });
+    expect(result.carrierLossLaunch).toEqual({ delay: 0, moved: true });
+    expect(result.launchResult).toEqual({ state: "active", movedForward: true, escortAnchorId: result.launchState.expectedCarrierId });
+    expect(result.hiddenWhileQueued).toBe(true);
+    expect(result.renderedWhenReleased).toBe(true);
     expect(result.escortResult).toEqual({ role: "escort", targetId: result.escortResult.expectedTargetId, expectedTargetId: result.escortResult.expectedTargetId, returnedToAnchor: true });
     expect(result.longRangePursuit).toBe(true);
     expect(result.spacingAfter).toBeGreaterThan(result.spacingBefore);

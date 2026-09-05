@@ -19,10 +19,12 @@ Fleet roles keep battles spatially readable: missile capitals maintain standoff
 range and launch in any direction, fighters screen allied capitals instead of
 chasing distant contacts, and broader spawn formations, escort stations, and
 collision avoidance spread ships across the available battlefield. Ships and
-weapons wrap continuously through opposite battlefield edges. Hull centerlines,
-wing bars, and nose chevrons identify each faction at a glance: Earth uses white,
-Gliese uses red, and Eridani uses blue. Surviving ships face their outbound
-movement direction before accelerating into warp.
+weapons wrap continuously through opposite battlefield edges. The original hull
+sprites are tinted by faction: Earth stays bright white, Gliese uses red, and
+Eridani uses blue. Faction-colored plasma exhaust pulses behind the existing
+engine textures. Earth cruisers act as carriers: configured Earth fighters deploy
+from their hulls and return to the carrier's defensive screen. Surviving ships
+face their outbound movement direction before accelerating into warp.
 
 Battles support the original 70-ship ceiling. Winning factions earn persistent
 scores, surviving ships warp out, and a new system is generated. Lifetime spawn,

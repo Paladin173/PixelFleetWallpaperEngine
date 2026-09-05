@@ -9,7 +9,7 @@
     });
     const CAPITALS = {
         earth: [
-            ship("cruiser_1_4x.png", "cruiser_1_engine_4x.png", 700, 0.1, 0.025, 200, 0.5, { preferHullDamage: true, randomWeapons: true }),
+            ship("cruiser_1_4x.png", "cruiser_1_engine_4x.png", 700, 0.1, 0.025, 200, 0.5, { preferHullDamage: true, randomWeapons: true, carrier: true }),
             ship("earth_missile_cruiser_4x.png", "earth_missile_cruiser_engines_4x.png", 700, 0.05, 0.02, 200, 0.5, { preferHullDamage: true })
         ],
         gliese: [
@@ -275,17 +275,29 @@
             const originAngle = this.factionOriginAngles[faction];
             const radius = Math.min(this.width, this.height) * 0.38;
             const spread = Math.min(this.width, this.height) * 0.15;
-            const x = this.width / 2 + Math.cos(originAngle) * radius + this.random.range(-spread, spread);
-            const y = this.height / 2 + Math.sin(originAngle) * radius + this.random.range(-spread, spread);
+            let x = this.width / 2 + Math.cos(originAngle) * radius + this.random.range(-spread, spread);
+            let y = this.height / 2 + Math.sin(originAngle) * radius + this.random.range(-spread, spread);
             const batteries = definition.randomWeapons
                 ? Array.from({ length: 5 }, () => ({
                     ...EARTH_CRUISER_RANDOM_WEAPONS[Math.trunc(this.random.next() * 9 - 1)], count: 1
                 }))
                 : WEAPON_BATTERIES[definition.sprite].map((battery) => ({ ...battery }));
+            const carrier = type === "fighter" && faction === "earth"
+                ? this.ships.find((candidate) => candidate.role === "carrier" && candidate.state === "active")
+                : null;
+            const launchSlot = carrier
+                ? this.ships.filter((candidate) => candidate.carrierId === carrier.id && candidate.state === "launching").length
+                : 0;
+            const angle = carrier ? carrier.angle : originAngle + Math.PI;
+            if (carrier) {
+                const lateralOffset = (launchSlot - 1.5) * 9;
+                x = carrier.x + Math.cos(angle + Math.PI / 2) * lateralOffset;
+                y = carrier.y + Math.sin(angle + Math.PI / 2) * lateralOffset;
+            }
             this.ships.push({
                 id: this.nextId++, type, faction, sprite: definition.sprite, engine: definition.engine,
-                role: type === "fighter" ? "escort" : type === "capital" && batteries.some((battery) => battery.weapon === "missile") ? "artillery" : "line",
-                x, y, angle: originAngle + Math.PI, speed: definition.speed, maxSpeed: definition.speed, turnRate: definition.turnRate,
+                role: definition.carrier ? "carrier" : type === "fighter" ? "escort" : type === "capital" && batteries.some((battery) => battery.weapon === "missile") ? "artillery" : "line",
+                x, y, angle, speed: carrier ? definition.speed * 0.35 : definition.speed, maxSpeed: definition.speed, turnRate: definition.turnRate,
                 health: definition.hull, maxHealth: definition.hull, shield: definition.shield, maxShield: definition.shield,
                 shieldRechargeDelay: 0,
                 radius: type === "capital" ? 34 : type === "bomber" ? 17 : 11,
@@ -294,10 +306,12 @@
                 weaponTimers: batteries.map((battery) => this.random.range(0, battery.cooldown)),
                 weaponBursts: batteries.map((battery) => battery.burst || 1),
                 fireDelay: Math.min(...batteries.map((battery) => battery.cooldown)), fireTimer: 0, targetId: 0,
-                retargetTimer: this.random.range(0, 0.5), state: "active", deathTimer: 0,
+                retargetTimer: this.random.range(0, 0.5), state: carrier ? "launching" : "active", deathTimer: 0,
                 aiState: "engaging", attackRun: false, systems: { shields: 100, engine: 100, weapons: 100 },
                 ai: { ...definition },
                 ionIntegrity: definition.hull, disabledTimer: 0,
+                carrierId: carrier?.id || 0, launchDelay: carrier ? launchSlot * 0.4 : 0,
+                launchOffset: carrier ? (launchSlot - 1.5) * 9 : 0, launchTimer: carrier ? 0.7 : 0,
                 enginePulse: this.random.range(0, TWO_PI)
             });
             this.stats.factions[faction].spawns += 1;
@@ -342,6 +356,30 @@
                 ship.x += Math.cos(direction) * ship.speed * delta;
                 ship.y += Math.sin(direction) * ship.speed * delta;
                 ship.enginePulse += delta * 16;
+                return;
+            }
+            if (ship.state === "launching") {
+                const carrier = this.ships.find((candidate) => candidate.id === ship.carrierId && candidate.state === "active");
+                if (ship.launchDelay > 0 && carrier) {
+                    ship.launchDelay -= delta;
+                    ship.angle = carrier.angle;
+                    ship.speed = carrier.speed;
+                    ship.x = carrier.x + Math.cos(carrier.angle + Math.PI / 2) * ship.launchOffset;
+                    ship.y = carrier.y + Math.sin(carrier.angle + Math.PI / 2) * ship.launchOffset;
+                    ship.enginePulse += delta * 8;
+                    return;
+                }
+                ship.launchDelay = 0;
+                ship.launchTimer -= delta;
+                ship.speed += (ship.maxSpeed - ship.speed) * Math.min(1, delta * 3);
+                ship.x = ((ship.x + Math.cos(ship.angle) * ship.speed * delta) % this.width + this.width) % this.width;
+                ship.y = ((ship.y + Math.sin(ship.angle) * ship.speed * delta) % this.height + this.height) % this.height;
+                ship.enginePulse += delta * 14;
+                if (ship.launchTimer <= 0) {
+                    ship.state = "active";
+                    ship.targetId = 0;
+                    ship.retargetTimer = 0;
+                }
                 return;
             }
             if (ship.state === "disabled") {
@@ -399,8 +437,8 @@
                 } else {
                     idealRange = 150;
                 }
-            } else if (ship.role === "artillery") {
-                idealRange = 360;
+            } else if (ship.role === "artillery" || ship.role === "carrier") {
+                idealRange = ship.role === "carrier" ? 340 : 360;
                 if (distance < idealRange * 0.9) {
                     navigationX = -offsetX;
                     navigationY = -offsetY;
@@ -434,7 +472,7 @@
             const targetAngle = ship.aiState === "retreating" ? desired + Math.PI : navigationAngle;
             let angleDelta = ((targetAngle - ship.angle + Math.PI * 3) % TWO_PI) - Math.PI;
             ship.angle += Math.max(-ship.turnRate * delta, Math.min(ship.turnRate * delta, angleDelta));
-            const thrust = ship.aiState === "retreating" || ship.role === "artillery" || escortAnchor
+            const thrust = ship.aiState === "retreating" || ship.role === "artillery" || ship.role === "carrier" || escortAnchor
                 ? 1
                 : navigationGoalDistance > idealRange ? 1 : navigationGoalDistance < idealRange * 0.55 ? -0.35 : 0.2;
             const engineFactor = 0.35 + ship.systems.engine / 100 * 0.65;
@@ -484,6 +522,8 @@
         }
 
         findEscortAnchor(ship) {
+            const activeCarrier = this.ships.find((candidate) => candidate.faction === ship.faction && candidate.role === "carrier" && candidate.state === "active");
+            if (activeCarrier) return activeCarrier;
             let closest = null;
             let closestDistance = Infinity;
             for (const candidate of this.ships) {

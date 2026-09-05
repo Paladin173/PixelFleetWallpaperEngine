@@ -71,8 +71,13 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
   capitals maintain standoff range and can launch guided weapons independently
   of heading, fighters defend and return to wider allied-capital stations, and
   broader spawn dispersion plus class-scaled avoidance reduces stacked formations.
-- Desktop hull centerlines, wing bars, and nose chevrons identify Earth in white,
-  Gliese in red, and Eridani in blue while preserving the original ship sprites.
+- Cached per-pixel hull tinting identifies Earth in white, Gliese in red, and
+  Eridani in blue while retaining the original sprite detail. Pulsing
+  faction-colored exhaust is layered behind the APK engine textures.
+- The APK exposes a hangar system but no recoverable in-battle fighter-launch
+  call. As a desktop role enhancement, Earth cruisers deploy configured Earth
+  fighters from their hull and become those fighters' preferred escort anchor;
+  no bonus units are created and class spawn settings remain authoritative.
 - Active ships, projectiles, debris, and asteroids wrap across opposite world
   edges. Surviving ships align their hull heading with the outbound warp vector.
 - The APK's Earth cruiser `RANDOM` branch can select projectile enum members
@@ -81,7 +86,7 @@ assigned on every battle as in `GameLogic.spawnShipsLWP`.
 - The APK score/rank transfer formula and spawn weights are preserved without
   faction-specific correction. With capital target acquisition fixed, the
   deterministic 120-battle role-aware sample completes without timeouts at
-  40/41/39.
+  39/39/42 after staggered carrier deployment was added.
 - Complex per-pixel hull circles and individual component hit locations are
   represented by class collision radii and aggregate shield, engine, and weapon
   health.
